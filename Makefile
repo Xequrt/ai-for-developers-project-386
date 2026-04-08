@@ -55,6 +55,11 @@ test-guest: ## Тесты сценариев гостя
 test-occupancy: ## Тесты правила занятости
 	python3 -m unittest backend/tests/test_occupancy.py -v
 
+# ── E2E тесты ─────────────────────────────────────────────────────────────────
+
+test-e2e: ## Запустить e2e тесты (Playwright)
+	npm run test:e2e --prefix frontend
+
 # ── TypeSpec ──────────────────────────────────────────────────────────────────
 
 typespec-compile: ## Скомпилировать TypeSpec → openapi.yaml
