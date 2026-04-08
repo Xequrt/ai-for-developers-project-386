@@ -41,9 +41,8 @@ function HeroCalendarIcon() {
       <rect x="74" y="6" width="14" height="26" rx="7" fill="#C44A10" />
       {/* Месяц */}
       <text x="60" y="44" textAnchor="middle" fontSize="13" fontWeight="600" fill="rgba(255,255,255,0.75)"
-        fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
-        textTransform="uppercase">
-        {month}
+        fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif">
+        {month.toUpperCase()}
       </text>
       {/* Число */}
       <text x="60" y="98" textAnchor="middle" fontSize="52" fontWeight="700" fill="#FFFFFF"

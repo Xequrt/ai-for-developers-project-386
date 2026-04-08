@@ -24,8 +24,7 @@ const pageTransition = { duration: 0.3, ease: 'easeInOut' as const }
 const cardHover = {
   scale: 1.02,
   boxShadow: '0 4px 12px rgba(0,122,255,0.15)',
-  transition: { type: 'spring', stiffness: 300, damping: 20 },
-}
+} as const
 
 export function BookPage() {
   const navigate = useNavigate()
