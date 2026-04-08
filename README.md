@@ -15,7 +15,9 @@
 | Фронтенд | React 18, TypeScript, Vite, Mantine UI, Motion |
 | API-контракт | TypeSpec → OpenAPI 3.0 |
 | Хранилище | In-memory (словари Python) |
-| Тесты | Python unittest |
+| Юнит-тесты | Python unittest (45 тестов) |
+| E2E-тесты | Playwright (Chromium) |
+| CI | GitHub Actions |
 
 ## Быстрый старт
 
@@ -43,12 +45,18 @@ make dev-frontend   # Vite на http://localhost:5173
 ### Тесты
 
 ```bash
-make test             # все тесты
+make test             # юнит-тесты бэкенда (45 тестов)
 make test-verbose     # с подробным выводом
 make test-owner       # тесты владельца
 make test-guest       # тесты гостя
 make test-occupancy   # тесты правила занятости
+make test-e2e         # e2e тесты (Playwright, нужен запущенный dev-сервер)
 ```
+
+E2E тесты покрывают:
+- полный путь бронирования (гость)
+- создание типа события (владелец)
+- правило занятости слота (409 при повторном бронировании)
 
 ### TypeSpec → OpenAPI
 
@@ -71,3 +79,7 @@ make typespec-compile
 Документация доступна после запуска бэкенда: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 Публичные эндпоинты — `/api/v1/`, эндпоинты владельца — `/api/v1/owner/`.
+
+## CI
+
+GitHub Actions запускает e2e тесты при каждом пуше в `develop` и `main`, а также при открытии PR в `main`. При падении тестов сохраняется Playwright-отчёт как артефакт.
