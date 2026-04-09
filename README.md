@@ -14,7 +14,7 @@
 | Бэкенд | Python 3.12, FastAPI, Pydantic v2 |
 | Фронтенд | React 18, TypeScript, Vite, Mantine UI, Motion |
 | API-контракт | TypeSpec → OpenAPI 3.0 |
-| Хранилище | In-memory (словари Python) |
+| Хранилище | SQLite (SQLAlchemy 2.0) |
 | Юнит-тесты | Python unittest (45 тестов) |
 | E2E-тесты | Playwright (Chromium) |
 | CI | GitHub Actions |
