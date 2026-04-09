@@ -152,17 +152,19 @@ class TestOwnerUpcomingBookings(unittest.TestCase):
         """Встреча, которая идёт прямо сейчас, включается в список с isOngoing=True."""
         from datetime import datetime, timedelta
         import database as db
-        from models import Booking, BookingStatus
+        from database import SessionLocal, BookingRow
         # Создаём бронирование, которое началось 5 минут назад и закончится через 10
         now = datetime.now()
         start = (now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%S")
         end = (now + timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%S")
-        db.BOOKINGS["ongoing-1"] = Booking(
-            id="ongoing-1", eventTypeId="evt-001",
-            startTime=start, endTime=end,
-            guestName="Текущий Гость", guestEmail="ongoing@example.com",
-            status=BookingStatus.confirmed, createdAt=db.now_iso(),
-        )
+        with SessionLocal() as session:
+            session.add(BookingRow(
+                id="ongoing-1", event_type_id="evt-001",
+                start_time=start, end_time=end,
+                guest_name="Текущий Гость", guest_email="ongoing@example.com",
+                status="confirmed", created_at=db.now_iso(),
+            ))
+            session.commit()
         r = self.client.get("/api/v1/owner/bookings/upcoming")
         items = r.json()["items"]
         ongoing = [b for b in items if b["id"] == "ongoing-1"]

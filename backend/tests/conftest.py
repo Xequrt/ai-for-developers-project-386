@@ -5,15 +5,13 @@
 import sys
 import os
 
-# Добавляем backend/ в путь, чтобы импорты работали без установки пакета
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, date
 
 
 def future_iso(days: int = 1, hour: int = 10, minute: int = 0) -> str:
     """Возвращает ISO строку для будущей даты (naive, без timezone)."""
-    from datetime import date
     target = date.today() + timedelta(days=days)
     while target.weekday() >= 5:
         target += timedelta(days=1)
@@ -23,7 +21,6 @@ def future_iso(days: int = 1, hour: int = 10, minute: int = 0) -> str:
 
 def future_date(days: int = 1) -> str:
     """Возвращает YYYY-MM-DD для ближайшего рабочего дня через N дней."""
-    from datetime import date
     target = date.today() + timedelta(days=days)
     while target.weekday() >= 5:
         target += timedelta(days=1)
@@ -31,23 +28,33 @@ def future_date(days: int = 1) -> str:
 
 
 def reset_db():
-    """Сбрасывает in-memory БД к начальному состоянию."""
-    import database as db
-    from models import EventType, BookingStatus
+    """Пересоздаёт таблицы и заполняет seed-данными."""
+    from database import Base, engine, SessionLocal, OwnerRow, EventTypeRow, BookingRow
+    from database import _SEED_WORKING_HOURS
 
-    db.EVENT_TYPES.clear()
-    db.EVENT_TYPES["evt-001"] = EventType(
-        id="evt-001",
-        name="Встреча 15 минут",
-        description="Короткий звонок.",
-        durationMinutes=15,
-        createdAt="2026-01-01T00:00:00.000Z",
-    )
-    db.EVENT_TYPES["evt-002"] = EventType(
-        id="evt-002",
-        name="Встреча 30 минут",
-        description="Полноценная встреча.",
-        durationMinutes=30,
-        createdAt="2026-01-01T00:00:00.000Z",
-    )
-    db.BOOKINGS.clear()
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    with SessionLocal() as session:
+        session.add(OwnerRow(
+            id="550e8400-e29b-41d4-a716-446655440001",
+            name="Владелец",
+            email="owner@calendar.app",
+            timezone="Europe/Moscow",
+            working_hours_json=_SEED_WORKING_HOURS,
+        ))
+        session.add(EventTypeRow(
+            id="evt-001",
+            name="Встреча 15 минут",
+            description="Короткий звонок.",
+            duration_minutes=15,
+            created_at="2026-01-01T00:00:00.000Z",
+        ))
+        session.add(EventTypeRow(
+            id="evt-002",
+            name="Встреча 30 минут",
+            description="Полноценная встреча.",
+            duration_minutes=30,
+            created_at="2026-01-01T00:00:00.000Z",
+        ))
+        session.commit()

@@ -3,3 +3,4 @@ uvicorn[standard]==0.32.1
 pydantic[email]==2.10.3
 python-dateutil==2.9.0
 pytz==2024.2
+sqlalchemy==2.0.36

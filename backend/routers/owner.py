@@ -1,86 +1,116 @@
+import json
 from datetime import datetime
-from fastapi import APIRouter, Query
+
+from fastapi import APIRouter, Query, Depends
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+
 from models import (
-    Booking, BookingStatus, CreateEventTypeRequest,
-    ErrorDetail, ErrorResponse, PaginatedBookings, PaginatedBookingsWithStatus,
-    BookingWithStatus, UpdateEventTypeRequest,
+    Booking, BookingStatus, BookingWithStatus, CreateEventTypeRequest,
+    ErrorDetail, ErrorResponse, PaginatedBookingsWithStatus,
+    UpdateEventTypeRequest, WorkingHours, Owner,
 )
 import database as db
+from database import get_db, EventTypeRow, BookingRow, OwnerRow
+
+router = APIRouter(prefix="/api/v1/owner", tags=["OwnerApi"])
 
 
 def error_response(status_code: int, code: str, message: str):
     body = ErrorResponse(error=ErrorDetail(code=code, message=message))
     return JSONResponse(status_code=status_code, content=body.model_dump())
 
-router = APIRouter(prefix="/api/v1/owner", tags=["OwnerApi"])
+
+def row_to_owner(row: OwnerRow) -> Owner:
+    wh = WorkingHours(**json.loads(row.working_hours_json))
+    return Owner(id=row.id, name=row.name, email=row.email, timezone=row.timezone, workingHours=wh)
+
+
+def row_to_booking(row: BookingRow) -> Booking:
+    return Booking(
+        id=row.id,
+        eventTypeId=row.event_type_id,
+        startTime=row.start_time,
+        endTime=row.end_time,
+        guestName=row.guest_name,
+        guestEmail=row.guest_email,
+        guestPhone=row.guest_phone,
+        notes=row.notes,
+        status=BookingStatus(row.status),
+        createdAt=row.created_at,
+    )
 
 
 @router.get("/profile")
-def get_profile():
-    return db.OWNER
+def get_profile(session: Session = Depends(get_db)):
+    row = session.query(OwnerRow).first()
+    return row_to_owner(row)
 
 
 # ── Типы событий ──────────────────────────────────────────────────────────────
 
 @router.post("/event-types", status_code=201)
-def create_event_type(body: CreateEventTypeRequest):
+def create_event_type(body: CreateEventTypeRequest, session: Session = Depends(get_db)):
     if not body.id or len(body.id) > 100:
         return error_response(400, "VALIDATION_ERROR", "Некорректный id.")
-    if body.id in db.EVENT_TYPES:
+    if session.get(EventTypeRow, body.id):
         return error_response(409, "DUPLICATE_ID", "Тип события с таким id уже существует.")
     if not body.name or len(body.name) > 100:
         return error_response(400, "VALIDATION_ERROR", "Некорректное название.")
     if body.durationMinutes <= 0:
         return error_response(400, "VALIDATION_ERROR", "durationMinutes должно быть > 0.")
 
-    from models import EventType
-    et = EventType(
+    row = EventTypeRow(
         id=body.id,
         name=body.name,
         description=body.description,
-        durationMinutes=body.durationMinutes,
-        createdAt=db.now_iso(),
+        duration_minutes=body.durationMinutes,
+        created_at=db.now_iso(),
     )
-    db.EVENT_TYPES[et.id] = et
-    return et
+    session.add(row)
+    session.commit()
+    session.refresh(row)
+    return {"id": row.id, "name": row.name, "description": row.description,
+            "durationMinutes": row.duration_minutes, "createdAt": row.created_at}
 
 
 @router.get("/event-types/{id}")
-def get_event_type(id: str):
-    et = db.EVENT_TYPES.get(id)
-    if not et:
+def get_event_type(id: str, session: Session = Depends(get_db)):
+    row = session.get(EventTypeRow, id)
+    if not row:
         return error_response(404, "EVENT_TYPE_NOT_FOUND", "Тип события не найден.")
-    return et
+    return {"id": row.id, "name": row.name, "description": row.description,
+            "durationMinutes": row.duration_minutes, "createdAt": row.created_at}
 
 
 @router.put("/event-types/{id}")
-def update_event_type(id: str, body: UpdateEventTypeRequest):
-    et = db.EVENT_TYPES.get(id)
-    if not et:
+def update_event_type(id: str, body: UpdateEventTypeRequest, session: Session = Depends(get_db)):
+    row = session.get(EventTypeRow, id)
+    if not row:
         return error_response(404, "EVENT_TYPE_NOT_FOUND", "Тип события не найден.")
 
-    data = et.model_dump()
     if body.name is not None:
-        data["name"] = body.name
+        row.name = body.name
     if body.description is not None:
-        data["description"] = body.description
+        row.description = body.description
     if body.durationMinutes is not None:
         if body.durationMinutes <= 0:
             return error_response(400, "VALIDATION_ERROR", "durationMinutes должно быть > 0.")
-        data["durationMinutes"] = body.durationMinutes
+        row.duration_minutes = body.durationMinutes
 
-    from models import EventType
-    updated = EventType(**data)
-    db.EVENT_TYPES[id] = updated
-    return updated
+    session.commit()
+    session.refresh(row)
+    return {"id": row.id, "name": row.name, "description": row.description,
+            "durationMinutes": row.duration_minutes, "createdAt": row.created_at}
 
 
 @router.delete("/event-types/{id}", status_code=204)
-def delete_event_type(id: str):
-    if id not in db.EVENT_TYPES:
+def delete_event_type(id: str, session: Session = Depends(get_db)):
+    row = session.get(EventTypeRow, id)
+    if not row:
         return error_response(404, "EVENT_TYPE_NOT_FOUND", "Тип события не найден.")
-    del db.EVENT_TYPES[id]
+    session.delete(row)
+    session.commit()
 
 
 # ── Бронирования ──────────────────────────────────────────────────────────────
@@ -89,18 +119,20 @@ def delete_event_type(id: str):
 def list_upcoming_bookings(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    session: Session = Depends(get_db),
 ):
     now = datetime.now()
+    rows = session.query(BookingRow).filter(BookingRow.status == "confirmed").all()
+
     upcoming = []
-    for b in db.BOOKINGS.values():
-        if b.status != BookingStatus.confirmed:
-            continue
-        start = datetime.fromisoformat(b.startTime.replace("Z", ""))
-        end = datetime.fromisoformat(b.endTime.replace("Z", ""))
-        # включаем и будущие, и те что идут прямо сейчас
+    for r in rows:
+        end = datetime.fromisoformat(r.end_time.replace("Z", ""))
         if end > now:
+            start = datetime.fromisoformat(r.start_time.replace("Z", ""))
             is_ongoing = start <= now < end
+            b = row_to_booking(r)
             upcoming.append(BookingWithStatus(**b.model_dump(), isOngoing=is_ongoing))
+
     upcoming.sort(key=lambda b: b.startTime)
     total = len(upcoming)
     page = upcoming[offset: offset + limit]
@@ -108,19 +140,17 @@ def list_upcoming_bookings(
 
 
 @router.get("/bookings/{id}")
-def get_booking(id: str):
-    b = db.BOOKINGS.get(id)
-    if not b:
+def get_booking(id: str, session: Session = Depends(get_db)):
+    row = session.get(BookingRow, id)
+    if not row:
         return error_response(404, "BOOKING_NOT_FOUND", "Бронирование не найдено.")
-    return b
+    return row_to_booking(row)
 
 
 @router.delete("/bookings/{id}", status_code=204)
-def cancel_booking(id: str):
-    b = db.BOOKINGS.get(id)
-    if not b:
+def cancel_booking(id: str, session: Session = Depends(get_db)):
+    row = session.get(BookingRow, id)
+    if not row:
         return error_response(404, "BOOKING_NOT_FOUND", "Бронирование не найдено.")
-    data = b.model_dump()
-    data["status"] = BookingStatus.cancelled
-    from models import Booking
-    db.BOOKINGS[id] = Booking(**data)
+    row.status = "cancelled"
+    session.commit()
