@@ -4,6 +4,7 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   retries: 0,
+  reporter: [['html', { outputFolder: 'playwright-report', open: 'never' }]],
   use: {
     baseURL: 'http://localhost:5173',
     headless: true,
