@@ -1,6 +1,9 @@
 ### Hexlet tests and linter status:
 [![Actions Status](https://github.com/Xequrt/ai-for-developers-project-386/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/Xequrt/ai-for-developers-project-386/actions)
 
+### Приложение:
+https://calendar-booking-app-9g9h.onrender.com
+
 ---
 
 # Calendar — сервис записи на встречи
