@@ -3,6 +3,8 @@
  * Used by components and property-based tests.
  */
 
+import type { TargetAndTransition } from 'motion/react'
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface SlotInput {
@@ -41,22 +43,14 @@ export interface CellAria {
   ariaDisabled: boolean
 }
 
-export interface HoverProps {
-  scale: number
-  boxShadow?: string
-  transition: {
-    type: 'spring'
-    stiffness: number
-    damping: number
-  }
-}
+export type HoverProps = TargetAndTransition
 
 export interface AnimationProps {
-  initial?: Record<string, unknown>
-  animate?: Record<string, unknown>
-  exit?: Record<string, unknown>
+  initial?: TargetAndTransition
+  animate?: TargetAndTransition
+  exit?: TargetAndTransition
   transition?: Record<string, unknown>
-  whileHover?: Record<string, unknown>
+  whileHover?: TargetAndTransition
 }
 
 export interface FormValidationResult {

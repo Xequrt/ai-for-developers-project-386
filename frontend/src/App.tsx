@@ -1,4 +1,4 @@
-import { MantineProvider, useMantineColorScheme } from '@mantine/core'
+import { MantineProvider } from '@mantine/core'
 import '@mantine/core/styles.css'
 import { AnimatePresence } from 'motion/react'
 import { Route, Routes, useLocation } from 'react-router-dom'
