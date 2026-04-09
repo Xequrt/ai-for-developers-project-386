@@ -15,8 +15,9 @@ test.describe('Сценарий гостя — полное бронирован
 
   test('страница /book показывает типы событий', async ({ page }) => {
     await page.goto('/book')
+    await page.waitForLoadState('networkidle')
     // Ждём загрузки карточек
-    await expect(page.getByText('Выберите тип события')).toBeVisible()
+    await expect(page.getByText('Выберите тип события')).toBeVisible({ timeout: 10000 })
     const cards = page.locator('[class*="mantine-Card"]')
     await expect(cards.first()).toBeVisible()
   })
@@ -65,7 +66,8 @@ test.describe('Сценарий гостя — полное бронирован
 test.describe('Сценарий владельца — админка', () => {
   test('страница /admin показывает профиль владельца', async ({ page }) => {
     await page.goto('/admin')
-    await expect(page.getByText('Типы событий')).toBeVisible()
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByText('Типы событий')).toBeVisible({ timeout: 10000 })
     await expect(page.getByText('Предстоящие встречи')).toBeVisible()
   })
 

@@ -102,7 +102,7 @@ export function ConfirmPage() {
             <Stack gap="xs">
               <Text fw={600} size="sm" style={{ color: c.textPrimary }}>{eventType.name}</Text>
               <Text size="sm" style={{ color: c.textSecondary }}>{formatSlot(slot)}</Text>
-              <Text size="xs" style={{ color: '#007AFF' }}>{eventType.durationMinutes} мин</Text>
+              <Text size="xs" style={{ color: c.accent }}>{eventType.durationMinutes} мин</Text>
             </Stack>
           </Card>
 
