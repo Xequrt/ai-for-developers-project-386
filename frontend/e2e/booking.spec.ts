@@ -40,8 +40,8 @@ test.describe('Сценарий гостя — полное бронирован
     // Ждём появления слотов
     await page.waitForTimeout(500)
 
-    // Выбираем первый доступный слот
-    const slot = page.locator('button').filter({ hasText: /^\d{2}:\d{2}/ }).first()
+    // Выбираем первый доступный слот (не задизейбленный)
+    const slot = page.locator('button:not([disabled])').filter({ hasText: /^\d{2}:\d{2}/ }).first()
     await slot.waitFor({ state: 'visible' })
     await slot.click()
 
@@ -74,8 +74,8 @@ test.describe('Сценарий владельца — админка', () => {
   test('владелец может создать новый тип события', async ({ page }) => {
     await page.goto('/admin')
     await page.getByRole('button', { name: '+ Новый тип' }).click()
-    await page.getByLabel('ID').fill('evt-test-e2e')
-    await page.getByLabel('Название').fill('Тестовая встреча')
+    await page.getByRole('textbox', { name: 'ID' }).fill('evt-test-e2e')
+    await page.getByRole('textbox', { name: 'Название' }).fill('Тестовая встреча')
     await page.getByRole('button', { name: 'Создать' }).click()
     await expect(page.getByText('Тестовая встреча')).toBeVisible({ timeout: 3000 })
   })
