@@ -62,10 +62,11 @@ describe('Property 5: hover spring params match spec', () => {
         fc.constantFrom('timeslot' as const, 'calendar-cell' as const, 'event-card' as const),
         (elementType) => {
           const hover = getHoverProps(elementType)
+          const t = hover.transition as { type?: string; stiffness?: number; damping?: number } | undefined
           return (
-            hover.transition.type === 'spring' &&
-            hover.transition.stiffness === 300 &&
-            hover.transition.damping === 20
+            t?.type === 'spring' &&
+            t?.stiffness === 300 &&
+            t?.damping === 20
           )
         },
       ),
@@ -77,7 +78,7 @@ describe('Property 5: hover spring params match spec', () => {
     fc.assert(
       fc.property(
         fc.constantFrom('timeslot' as const, 'event-card' as const),
-        (elementType) => getHoverProps(elementType).scale === 1.02,
+        (elementType) => (getHoverProps(elementType).scale as number) === 1.02,
       ),
       { numRuns: 100 },
     )
@@ -87,7 +88,7 @@ describe('Property 5: hover spring params match spec', () => {
     fc.assert(
       fc.property(
         fc.constant('calendar-cell' as const),
-        (elementType) => getHoverProps(elementType).scale === 1.05,
+        (elementType) => (getHoverProps(elementType).scale as number) === 1.05,
       ),
       { numRuns: 100 },
     )

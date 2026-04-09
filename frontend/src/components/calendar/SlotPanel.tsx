@@ -1,7 +1,7 @@
 import { Button, Group, Loader, ScrollArea, Stack, Text } from '@mantine/core'
 import { motion, useReducedMotion } from 'motion/react'
 import type { TimeSlot } from '../../types'
-import { getSlotStyles, getSlotAria, getHoverProps } from '../../utils/animationProps'
+import { getSlotAria, getHoverProps } from '../../utils/animationProps'
 import { useThemeColors } from '../../utils/useThemeColors'
 
 interface SlotPanelProps {
