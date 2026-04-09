@@ -1,29 +1,25 @@
-import { Group, Text, Anchor } from '@mantine/core'
-import { Link, useLocation } from 'react-router-dom'
+import { Group, Text, Anchor, ActionIcon, SegmentedControl } from '@mantine/core'
+import { Link } from 'react-router-dom'
+import { useMantineColorScheme } from '@mantine/core'
+import { useDesignSystem } from '../../utils/designSystem'
+import { useThemeColors } from '../../utils/useThemeColors'
 
 function CalendarLogo() {
+  const { isClassic } = useThemeColors()
   const today = new Date().getDate()
+  const fill = isClassic ? '#FF6B35' : '#007AFF'
+  const fillDark = isClassic ? '#E85A20' : '#0066D6'
+  const fillDeep = isClassic ? '#C44A10' : '#0052AD'
 
   return (
     <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      {/* Тело календаря */}
-      <rect x="2" y="6" width="32" height="28" rx="6" fill="#FF6B35" />
-      {/* Шапка */}
-      <rect x="2" y="6" width="32" height="10" rx="6" fill="#E85A20" />
-      <rect x="2" y="12" width="32" height="4" fill="#E85A20" />
-      {/* Крепления */}
-      <rect x="10" y="2" width="4" height="8" rx="2" fill="#C44A10" />
-      <rect x="22" y="2" width="4" height="8" rx="2" fill="#C44A10" />
-      {/* Число */}
-      <text
-        x="18"
-        y="30"
-        textAnchor="middle"
-        fontSize="14"
-        fontWeight="700"
-        fill="#FFFFFF"
-        fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
-      >
+      <rect x="2" y="6" width="32" height="28" rx="6" fill={fill} />
+      <rect x="2" y="6" width="32" height="10" rx="6" fill={fillDark} />
+      <rect x="2" y="12" width="32" height="4" fill={fillDark} />
+      <rect x="10" y="2" width="4" height="8" rx="2" fill={fillDeep} />
+      <rect x="22" y="2" width="4" height="8" rx="2" fill={fillDeep} />
+      <text x="18" y="30" textAnchor="middle" fontSize="14" fontWeight="700" fill="#FFFFFF"
+        fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif">
         {today}
       </text>
     </svg>
@@ -31,8 +27,10 @@ function CalendarLogo() {
 }
 
 export function Navbar() {
-  const location = useLocation()
-  const isLanding = location.pathname === '/'
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme()
+  const { designSystem, setDesignSystem } = useDesignSystem()
+  const c = useThemeColors()
+  const isDark = colorScheme === 'dark'
 
   return (
     <header
@@ -40,9 +38,10 @@ export function Navbar() {
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        background: isLanding ? 'transparent' : 'rgba(255,255,255,0.85)',
-        backdropFilter: isLanding ? 'none' : 'blur(20px)',
-        borderBottom: isLanding ? 'none' : '1px solid rgba(0,0,0,0.06)',
+        background: isDark ? 'rgba(18,18,18,0.9)' : 'rgba(255,255,255,0.9)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: `1px solid ${c.borderSubtle}`,
         padding: '0 24px',
         height: 56,
         display: 'flex',
@@ -54,36 +53,62 @@ export function Navbar() {
         <Link to="/" style={{ textDecoration: 'none' }}>
           <Group gap="xs" align="center">
             <CalendarLogo />
-            <Text
-              fw={700}
-              size="lg"
-              style={{
-                color: '#1C1C1E',
-                letterSpacing: '-0.5px',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-              }}
-            >
+            <Text fw={700} size="lg" style={{
+              color: c.textPrimary,
+              letterSpacing: '-0.5px',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+            }}>
               Calendar
             </Text>
           </Group>
         </Link>
 
-        {/* Nav links */}
-        <Group gap="xl">
-          <Anchor
-            component={Link}
-            to="/book"
-            style={{ color: '#FF6B35', fontWeight: 600, fontSize: 15, textDecoration: 'none' }}
-          >
+        {/* Right side */}
+        <Group gap="md">
+          <Anchor component={Link} to="/book" style={{ color: c.accent, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
             Записаться
           </Anchor>
-          <Anchor
-            component={Link}
-            to="/admin"
-            style={{ color: '#1C1C1E', fontWeight: 500, fontSize: 15, textDecoration: 'none' }}
-          >
+          <Anchor component={Link} to="/admin" style={{ color: c.textPrimary, fontWeight: 500, fontSize: 15, textDecoration: 'none' }}>
             Админка
           </Anchor>
+
+          {/* Design system switcher */}
+          <SegmentedControl
+            size="xs"
+            value={designSystem}
+            onChange={(v) => setDesignSystem(v as 'classic' | 'liquid')}
+            data={[
+              { label: '🍊 Classic', value: 'classic' },
+              { label: '💎 Liquid', value: 'liquid' },
+            ]}
+            styles={{
+              root: {
+                background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                border: 'none',
+              },
+              indicator: {
+                background: c.accent,
+              },
+              label: {
+                color: c.textPrimary,
+                fontSize: 12,
+                fontWeight: 500,
+              },
+            }}
+          />
+
+          {/* Light/dark toggle */}
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="md"
+            radius="md"
+            onClick={() => toggleColorScheme()}
+            aria-label={isDark ? 'Светлая тема' : 'Тёмная тема'}
+            title={isDark ? 'Светлая тема' : 'Тёмная тема'}
+          >
+            {isDark ? '☀️' : '🌙'}
+          </ActionIcon>
         </Group>
       </Group>
     </header>

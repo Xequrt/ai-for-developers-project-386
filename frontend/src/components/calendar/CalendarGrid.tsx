@@ -1,6 +1,8 @@
 import { ActionIcon, Group, Stack, Text } from '@mantine/core'
-import { motion, AnimatePresence } from 'motion/react'
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import type { DayAvailability } from '../../types'
+import { getCellAria, getHoverProps } from '../../utils/animationProps'
+import { useThemeColors } from '../../utils/useThemeColors'
 
 interface CalendarGridProps {
   currentMonth: string // YYYY-MM
@@ -29,9 +31,7 @@ function addMonths(ym: string, delta: number): string {
 }
 
 function buildCalendarDays(year: number, month: number): (string | null)[] {
-  // month is 1-based
   const firstDay = new Date(year, month - 1, 1)
-  // Monday-based: 0=Mon … 6=Sun
   let startOffset = firstDay.getDay() - 1
   if (startOffset < 0) startOffset = 6
 
@@ -42,7 +42,6 @@ function buildCalendarDays(year: number, month: number): (string | null)[] {
   for (let d = 1; d <= daysInMonth; d++) {
     cells.push(`${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`)
   }
-  // Pad to full weeks
   while (cells.length % 7 !== 0) cells.push(null)
   return cells
 }
@@ -57,70 +56,73 @@ export function CalendarGrid({
   const { year, month } = parseYearMonth(currentMonth)
   const cells = buildCalendarDays(year, month)
   const today = new Date().toISOString().slice(0, 10)
+  const prefersReducedMotion = useReducedMotion()
+  const c = useThemeColors()
 
   const availMap = new Map<string, number>(
     availability.map((a) => [a.date, a.availableCount]),
   )
 
-  // Окно доступности: сегодня + 14 дней
   const windowEnd = new Date()
   windowEnd.setDate(windowEnd.getDate() + 14)
   const windowEndStr = windowEnd.toISOString().slice(0, 10)
 
-  // Навигация: назад нельзя раньше текущего месяца, вперёд только если окно захватывает следующий месяц
-  const todayMonth = today.slice(0, 7) // YYYY-MM
+  const todayMonth = today.slice(0, 7)
   const windowEndMonth = windowEndStr.slice(0, 7)
   const canGoPrev = currentMonth > todayMonth
   const canGoNext = currentMonth < windowEndMonth
 
   const monthLabel = `${MONTH_NAMES[month - 1]} ${year} г.`
+  const cellHover = getHoverProps('calendar-cell')
 
   return (
     <Stack gap="md">
       {/* Header */}
       <Group justify="space-between" align="center">
-        <Text fw={700} size="lg" style={{ color: '#1C1C1E', letterSpacing: '-0.3px' }}>
+        <Text fw={700} size="lg" style={{ color: c.textPrimary, letterSpacing: '-0.3px' }}>
           Календарь
         </Text>
         <Group gap="xs">
           <ActionIcon
             variant="subtle"
             color="gray"
-            size="md"
+            size="lg"
             radius="md"
             disabled={!canGoPrev}
             onClick={() => canGoPrev && onMonthChange(addMonths(currentMonth, -1))}
             aria-label="Предыдущий месяц"
+            style={{ minWidth: 44, minHeight: 44 }}
           >
             ←
           </ActionIcon>
           <ActionIcon
             variant="subtle"
             color="gray"
-            size="md"
+            size="lg"
             radius="md"
             disabled={!canGoNext}
             onClick={() => canGoNext && onMonthChange(addMonths(currentMonth, 1))}
             aria-label="Следующий месяц"
+            style={{ minWidth: 44, minHeight: 44 }}
           >
             →
           </ActionIcon>
         </Group>
       </Group>
 
-      {/* Month label */}
+      {/* Month label + grid */}
       <AnimatePresence mode="wait">
         <motion.div
           key={currentMonth}
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
-          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: 50 }}
+          animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, x: 0 }}
+          exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: -50 }}
+          transition={prefersReducedMotion ? { duration: 0.01 } : { duration: 0.3, ease: 'easeInOut' }}
         >
           <Text
             size="sm"
             fw={500}
-            style={{ color: '#6C6C70', textTransform: 'capitalize' }}
+            style={{ color: c.textSecondary, textTransform: 'capitalize' }}
           >
             {monthLabel}
           </Text>
@@ -141,7 +143,7 @@ export function CalendarGrid({
                 size="xs"
                 fw={600}
                 ta="center"
-                style={{ color: '#8E8E93', padding: '4px 0' }}
+                style={{ color: '#8E8E93', padding: '4px 0', fontSize: 12 }}
               >
                 {wd}
               </Text>
@@ -172,15 +174,19 @@ export function CalendarGrid({
               })()
               const isDisabled = isPast || isOutOfWindow || isWeekend || count === 0
 
+              const { ariaLabel, ariaPressed, ariaDisabled } = getCellAria({
+                date,
+                count,
+                selected: isSelected,
+                disabled: isDisabled,
+              })
+
               return (
                 <motion.button
                   key={date}
                   whileHover={
-                    !isDisabled
-                      ? {
-                          scale: 1.05,
-                          transition: { type: 'spring', stiffness: 300, damping: 20 },
-                        }
+                    !isDisabled && !prefersReducedMotion
+                      ? cellHover
                       : {}
                   }
                   onClick={() => !isDisabled && onDateSelect(date)}
@@ -191,32 +197,37 @@ export function CalendarGrid({
                     alignItems: 'center',
                     justifyContent: 'center',
                     height: 56,
+                    minWidth: 44,
+                    minHeight: 44,
                     borderRadius: 8,
-                    border: isToday && !isSelected ? '2px solid #FF6B35' : '2px solid transparent',
+                    border: isToday && !isSelected
+                      ? `2px solid ${c.calendarTodayBorder}`
+                      : '2px solid transparent',
                     background: isSelected
-                      ? '#FF6B35'
+                      ? c.calendarSelected
                       : isDisabled
                       ? 'transparent'
-                      : '#FFFFFF',
+                      : c.bgCardSolid,
                     cursor: isDisabled ? 'default' : 'pointer',
                     padding: 0,
                     gap: 2,
                     boxShadow: isSelected
-                      ? '0 2px 8px rgba(255,107,53,0.3)'
+                      ? `0 2px 8px ${c.calendarSelectedShadow}`
                       : !isDisabled
                       ? '0 1px 3px rgba(0,0,0,0.06)'
                       : 'none',
                     opacity: isDisabled && !isToday ? 0.4 : 1,
                     transition: 'background 0.15s',
                   }}
-                  aria-label={`${date}${count > 0 ? `, ${count} свободных слотов` : ''}`}
-                  aria-pressed={isSelected}
+                  aria-label={ariaLabel}
+                  aria-pressed={ariaPressed}
+                  aria-disabled={ariaDisabled}
                 >
                   <Text
                     size="sm"
                     fw={isSelected || isToday ? 700 : 400}
                     style={{
-                      color: isSelected ? '#FFFFFF' : isDisabled ? '#C7C7CC' : '#1C1C1E',
+                      color: isSelected ? '#FFFFFF' : isDisabled ? c.textDisabled : c.textPrimary,
                       lineHeight: 1,
                     }}
                   >
@@ -226,7 +237,7 @@ export function CalendarGrid({
                     <Text
                       size="xs"
                       style={{
-                        color: isSelected ? 'rgba(255,255,255,0.85)' : '#FF6B35',
+                        color: isSelected ? 'rgba(255,255,255,0.85)' : c.slotAvailableCountColor,
                         fontSize: 9,
                         lineHeight: 1,
                         fontWeight: 600,

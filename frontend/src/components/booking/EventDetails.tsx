@@ -1,6 +1,7 @@
 import { Avatar, Badge, Divider, Group, Stack, Text } from '@mantine/core'
-import { motion, AnimatePresence } from 'motion/react'
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import type { EventType, Owner, TimeSlot } from '../../types'
+import { useThemeColors } from '../../utils/useThemeColors'
 
 interface EventDetailsProps {
   eventType: EventType
@@ -34,23 +35,40 @@ export function EventDetails({
   selectedDate,
   selectedSlot,
 }: EventDetailsProps) {
+  const prefersReducedMotion = useReducedMotion()
+  const c = useThemeColors()
   const timeLabel = selectedSlot
     ? `${formatTime(selectedSlot.startTime)} – ${formatTime(selectedSlot.endTime)}`
     : null
 
+  const chipAnim = prefersReducedMotion
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.01 } }
+    : { initial: { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -4 }, transition: { duration: 0.2 } }
+
   return (
-    <Stack gap="lg">
+    <Stack
+      gap="lg"
+      style={{
+        background: c.glassBackground,
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: c.glassBorder,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        borderRadius: 12,
+        padding: 20,
+      }}
+    >
       {/* Owner */}
       {owner && (
         <Group gap="sm">
-          <Avatar size={40} radius="xl" color="orange">
+          <Avatar size={40} radius="xl" color={c.mantineColor}>
             {owner.name.charAt(0).toUpperCase()}
           </Avatar>
           <Stack gap={0}>
-            <Text fw={600} size="sm" style={{ color: '#1C1C1E' }}>
+            <Text fw={600} size="sm" style={{ color: c.textPrimary }}>
               {owner.name}
             </Text>
-            <Text size="xs" style={{ color: '#8E8E93' }}>
+            <Text size="xs" style={{ color: c.textTertiary }}>
               Host
             </Text>
           </Stack>
@@ -62,14 +80,14 @@ export function EventDetails({
       {/* Event type info */}
       <Stack gap="xs">
         <Group gap="xs" align="center">
-          <Text fw={700} size="lg" style={{ color: '#1C1C1E', letterSpacing: '-0.3px' }}>
+          <Text fw={700} size="lg" style={{ color: c.textPrimary, letterSpacing: '-0.3px' }}>
             {eventType.name}
           </Text>
-          <Badge size="sm" variant="filled" color="orange">
+          <Badge size="sm" variant="filled" color={c.mantineColor}>
             {eventType.durationMinutes} мин
           </Badge>
         </Group>
-        <Text size="sm" style={{ color: '#6C6C70', lineHeight: 1.6 }}>
+        <Text size="sm" style={{ color: c.textSecondary, lineHeight: 1.6 }}>
           {eventType.description}
         </Text>
       </Stack>
@@ -78,27 +96,24 @@ export function EventDetails({
 
       {/* Selected date */}
       <Stack gap="xs">
-        <Text size="xs" fw={600} style={{ color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <Text size="xs" fw={600} style={{ color: c.textTertiary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Выбранная дата
         </Text>
         <AnimatePresence mode="wait">
           {selectedDate ? (
             <motion.div
               key={selectedDate}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.2 }}
+              {...chipAnim}
             >
               <Text
                 size="sm"
                 fw={500}
                 style={{
-                  color: '#1C1C1E',
-                  background: 'rgba(255,107,53,0.08)',
+                  color: c.textPrimary,
+                  background: c.chipBg,
                   padding: '8px 12px',
                   borderRadius: 8,
-                  border: '1px solid rgba(255,107,53,0.2)',
+                  border: c.chipBorder,
                 }}
               >
                 {formatDate(selectedDate)}
@@ -114,8 +129,8 @@ export function EventDetails({
               <Text
                 size="sm"
                 style={{
-                  color: '#C7C7CC',
-                  background: '#F2F2F7',
+                  color: c.textDisabled,
+                  background: c.bgSecondary,
                   padding: '8px 12px',
                   borderRadius: 8,
                   fontStyle: 'italic',
@@ -130,27 +145,24 @@ export function EventDetails({
 
       {/* Selected time */}
       <Stack gap="xs">
-        <Text size="xs" fw={600} style={{ color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <Text size="xs" fw={600} style={{ color: c.textTertiary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Выбранное время
         </Text>
         <AnimatePresence mode="wait">
           {timeLabel ? (
             <motion.div
               key={timeLabel}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.2 }}
+              {...chipAnim}
             >
               <Text
                 size="sm"
                 fw={500}
                 style={{
-                  color: '#1C1C1E',
-                  background: 'rgba(255,107,53,0.08)',
+                  color: c.textPrimary,
+                  background: c.chipBg,
                   padding: '8px 12px',
                   borderRadius: 8,
-                  border: '1px solid rgba(255,107,53,0.2)',
+                  border: c.chipBorder,
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
@@ -167,8 +179,8 @@ export function EventDetails({
               <Text
                 size="sm"
                 style={{
-                  color: '#C7C7CC',
-                  background: '#F2F2F7',
+                  color: c.textDisabled,
+                  background: c.bgSecondary,
                   padding: '8px 12px',
                   borderRadius: 8,
                   fontStyle: 'italic',

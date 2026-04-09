@@ -1,4 +1,17 @@
-import { createTheme, MantineColorsTuple } from '@mantine/core'
+import { createTheme, CSSVariablesResolver, MantineColorsTuple } from '@mantine/core'
+
+const blue: MantineColorsTuple = [
+  '#e5f4ff',
+  '#cce8ff',
+  '#99d1ff',
+  '#66baff',
+  '#33a3ff',
+  '#1a96ff',
+  '#007AFF', // 6 — primary light
+  '#0A84FF', // 7 — primary dark
+  '#0066d6',
+  '#0052ad',
+]
 
 const orange: MantineColorsTuple = [
   '#fff3ee',
@@ -7,19 +20,23 @@ const orange: MantineColorsTuple = [
   '#ffa476',
   '#ff874b',
   '#ff7530',
-  '#FF6B35',
+  '#FF6B35', // 6
   '#e55a25',
   '#cc4d1a',
   '#b3400e',
 ]
 
+export const cssVariablesResolver: CSSVariablesResolver = () => ({
+  variables: {},
+  light: {},
+  dark: {},
+})
+
 export const businessAppleTheme = createTheme({
   fontFamily:
     '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-  primaryColor: 'orange',
-  colors: {
-    orange,
-  },
+  primaryColor: 'blue',
+  colors: { blue, orange },
   defaultRadius: 'md',
   radius: {
     xs: '4px',
@@ -36,21 +53,8 @@ export const businessAppleTheme = createTheme({
     xl: '0 16px 48px rgba(0,0,0,0.16)',
   },
   components: {
-    Button: {
-      defaultProps: {
-        radius: 'md',
-      },
-    },
-    Card: {
-      defaultProps: {
-        radius: 'md',
-        shadow: 'sm',
-      },
-    },
-    Badge: {
-      defaultProps: {
-        radius: 'sm',
-      },
-    },
+    Button: { defaultProps: { radius: 'md' } },
+    Card: { defaultProps: { radius: 'md', shadow: 'sm' } },
+    Badge: { defaultProps: { radius: 'sm' } },
   },
 })

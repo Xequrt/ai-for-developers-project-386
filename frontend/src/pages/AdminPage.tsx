@@ -3,6 +3,7 @@ import { Avatar, Badge, Button, Card, Group, Loader, Stack, Text, TextInput, Tex
 import { motion, AnimatePresence } from 'motion/react'
 import { getOwnerProfile, getUpcomingBookings, getEventTypes, createEventType, updateEventType, deleteEventType } from '../api/client'
 import type { Booking, EventType, Owner } from '../types'
+import { useThemeColors } from '../utils/useThemeColors'
 
 const pageVariants = {
   initial: { opacity: 0, x: 50 },
@@ -31,7 +32,7 @@ interface DurationPickerProps {
 }
 
 function DurationPicker({ value, onChange }: DurationPickerProps) {
-  // customValue хранит строку в поле ввода независимо от быстрых кнопок
+  const c = useThemeColors()
   const [customValue, setCustomValue] = useState<number | string>(
     DURATION_OPTIONS.includes(value) ? '' : value,
   )
@@ -49,7 +50,7 @@ function DurationPicker({ value, onChange }: DurationPickerProps) {
 
   return (
     <Stack gap={4}>
-      <Text size="sm" fw={500} style={{ color: '#1C1C1E' }}>Длительность (мин)</Text>
+      <Text size="sm" fw={500} style={{ color: c.textPrimary }}>Длительность (мин)</Text>
       <Group gap="xs" wrap="wrap">
         {DURATION_OPTIONS.map((d) => (
           <Button
@@ -57,7 +58,7 @@ function DurationPicker({ value, onChange }: DurationPickerProps) {
             size="xs"
             radius="md"
             variant={value === d && customValue === '' ? 'filled' : 'light'}
-            color="orange"
+            color={c.mantineColor}
             onClick={() => handleQuickPick(d)}
           >
             {d}
@@ -85,6 +86,7 @@ interface CreateFormProps {
 }
 
 function CreateForm({ onCreated, onCancel }: CreateFormProps) {
+  const c = useThemeColors()
   const [id, setId] = useState('')
   const [name, setName] = useState('')
   const [desc, setDesc] = useState('')
@@ -109,9 +111,9 @@ function CreateForm({ onCreated, onCancel }: CreateFormProps) {
   }
 
   return (
-    <Card padding="lg" radius="md" style={{ background: '#FFFFFF', border: '1px solid rgba(255,107,53,0.2)' }}>
+    <Card padding="lg" radius="md" style={{ background: c.bgCardSolid, border: `1px solid rgba(0,122,255,0.2)` }}>
       <Stack gap="sm">
-        <Text fw={600} style={{ color: '#1C1C1E' }}>Создать тип события</Text>
+        <Text fw={600} style={{ color: c.textPrimary }}>Создать тип события</Text>
         <Group grow>
           <TextInput label="ID" placeholder="evt-consultation" value={id} onChange={(e) => setId(e.currentTarget.value)} radius="md" />
           <TextInput label="Название" placeholder="Консультация 30 минут" value={name} onChange={(e) => setName(e.currentTarget.value)} radius="md" />
@@ -121,7 +123,7 @@ function CreateForm({ onCreated, onCancel }: CreateFormProps) {
         {error && <Text size="sm" style={{ color: '#FF3B30' }}>{error}</Text>}
         <Group justify="flex-end" gap="xs">
           <Button size="sm" radius="md" variant="subtle" color="gray" onClick={onCancel}>Отмена</Button>
-          <Button size="sm" radius="md" color="orange" loading={loading} onClick={handleSubmit}>Создать</Button>
+          <Button size="sm" radius="md" color={c.mantineColor} loading={loading} onClick={handleSubmit}>Создать</Button>
         </Group>
       </Stack>
     </Card>
@@ -136,6 +138,7 @@ interface EditFormProps {
 }
 
 function EditForm({ et, onUpdated, onCancel }: EditFormProps) {
+  const c = useThemeColors()
   const [name, setName] = useState(et.name)
   const [desc, setDesc] = useState(et.description)
   const [duration, setDuration] = useState(et.durationMinutes)
@@ -158,11 +161,11 @@ function EditForm({ et, onUpdated, onCancel }: EditFormProps) {
   }
 
   return (
-    <Card padding="md" radius="md" style={{ background: '#FFF9F5', border: '1px solid rgba(255,107,53,0.25)' }}>
+    <Card padding="md" radius="md" style={{ background: c.editFormBg, border: '1px solid rgba(0,122,255,0.25)' }}>
       <Stack gap="sm">
         <Group justify="space-between">
-          <Text fw={600} size="sm" style={{ color: '#1C1C1E' }}>Редактировать</Text>
-          <Text size="xs" style={{ color: '#C7C7CC', fontFamily: 'monospace' }}>id: {et.id}</Text>
+          <Text fw={600} size="sm" style={{ color: c.textPrimary }}>Редактировать</Text>
+          <Text size="xs" style={{ color: c.textDisabled, fontFamily: 'monospace' }}>id: {et.id}</Text>
         </Group>
         <Group grow>
           <TextInput label="Название" value={name} onChange={(e) => setName(e.currentTarget.value)} radius="md" size="sm" />
@@ -172,7 +175,7 @@ function EditForm({ et, onUpdated, onCancel }: EditFormProps) {
         {error && <Text size="sm" style={{ color: '#FF3B30' }}>{error}</Text>}
         <Group justify="flex-end" gap="xs">
           <Button size="xs" radius="md" variant="subtle" color="gray" onClick={onCancel}>Отмена</Button>
-          <Button size="xs" radius="md" color="orange" loading={loading} onClick={handleSubmit}>Сохранить</Button>
+          <Button size="xs" radius="md" color={c.mantineColor} loading={loading} onClick={handleSubmit}>Сохранить</Button>
         </Group>
       </Stack>
     </Card>
@@ -185,10 +188,10 @@ export function AdminPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [eventTypes, setEventTypes] = useState<EventType[]>([])
   const [loading, setLoading] = useState(true)
-
   const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const c = useThemeColors()
 
   useEffect(() => {
     Promise.all([getOwnerProfile(), getUpcomingBookings(), getEventTypes()]).then(
@@ -227,8 +230,8 @@ export function AdminPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: 'calc(100vh - 56px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader color="orange" size="lg" />
+      <div style={{ minHeight: 'calc(100vh - 56px)', background: c.bgPage, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader color={c.mantineColor} size="lg" />
       </div>
     )
   }
@@ -240,21 +243,21 @@ export function AdminPage() {
       animate="animate"
       exit="exit"
       transition={pageTransition}
-      style={{ minHeight: 'calc(100vh - 56px)', background: '#F5F5F7', padding: '40px 24px' }}
+      style={{ minHeight: 'calc(100vh - 56px)', background: c.bgPage, padding: '40px 24px' }}
     >
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
         <Stack gap="xl">
 
           {/* Owner header */}
           {owner && (
-            <Card padding="lg" radius="md" style={{ background: '#FFFFFF' }}>
+            <Card padding="lg" radius="md" style={{ background: c.bgCardSolid, border: `1px solid ${c.borderSubtle}` }}>
               <Group gap="md">
-                <Avatar size={56} radius="xl" color="orange">{owner.name.charAt(0).toUpperCase()}</Avatar>
+                <Avatar size={56} radius="xl" color={c.mantineColor}>{owner.name.charAt(0).toUpperCase()}</Avatar>
                 <Stack gap={2}>
-                  <Text fw={700} size="lg" style={{ color: '#1C1C1E' }}>{owner.name}</Text>
-                  <Text size="sm" style={{ color: '#6C6C70' }}>{owner.email}</Text>
+                  <Text fw={700} size="lg" style={{ color: c.textPrimary }}>{owner.name}</Text>
+                  <Text size="sm" style={{ color: c.textSecondary }}>{owner.email}</Text>
                 </Stack>
-                <Badge size="lg" variant="light" color="orange" style={{ marginLeft: 'auto' }}>
+                <Badge size="lg" variant="light" color={c.mantineColor} style={{ marginLeft: 'auto' }}>
                   {bookings.length} предстоящих
                 </Badge>
               </Group>
@@ -264,13 +267,13 @@ export function AdminPage() {
           {/* Event types section */}
           <Stack gap="sm">
             <Group justify="space-between" align="center">
-              <Text fw={700} style={{ fontSize: 24, color: '#1C1C1E', letterSpacing: '-0.5px' }}>
+              <Text fw={700} style={{ fontSize: 24, color: c.textPrimary, letterSpacing: '-0.5px' }}>
                 Типы событий
               </Text>
               <Button
                 size="sm"
                 radius="md"
-                color="orange"
+                color={c.mantineColor}
                 variant={formOpen ? 'light' : 'filled'}
                 onClick={() => { setFormOpen((v) => !v); setEditingId(null) }}
               >
@@ -299,17 +302,17 @@ export function AdminPage() {
                     {editingId === et.id ? (
                       <EditForm et={et} onUpdated={handleUpdated} onCancel={() => setEditingId(null)} />
                     ) : (
-                      <Card padding="md" radius="md" style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.06)' }}>
+                      <Card padding="md" radius="md" style={{ background: c.bgCardSolid, border: `1px solid ${c.borderSubtle}` }}>
                         <Group justify="space-between" align="center">
                           <Stack gap={2}>
-                            <Text fw={600} size="sm" style={{ color: '#1C1C1E' }}>{et.name}</Text>
+                            <Text fw={600} size="sm" style={{ color: c.textPrimary }}>{et.name}</Text>
                             {et.description && (
-                              <Text size="xs" style={{ color: '#8E8E93' }}>{et.description}</Text>
+                              <Text size="xs" style={{ color: c.textTertiary }}>{et.description}</Text>
                             )}
-                            <Text size="xs" style={{ color: '#C7C7CC', fontFamily: 'monospace' }}>id: {et.id}</Text>
+                            <Text size="xs" style={{ color: c.textDisabled, fontFamily: 'monospace' }}>id: {et.id}</Text>
                           </Stack>
                           <Group gap="xs" align="center">
-                            <Badge size="md" variant="light" color="orange">{et.durationMinutes} мин</Badge>
+                            <Badge size="md" variant="light" color={c.mantineColor}>{et.durationMinutes} мин</Badge>
                             <ActionIcon
                               size="sm"
                               variant="subtle"
@@ -342,16 +345,16 @@ export function AdminPage() {
           </Stack>
 
           {/* Upcoming bookings */}
-          <Text fw={700} style={{ fontSize: 24, color: '#1C1C1E', letterSpacing: '-0.5px' }}>
+          <Text fw={700} style={{ fontSize: 24, color: c.textPrimary, letterSpacing: '-0.5px' }}>
             Предстоящие встречи
           </Text>
 
           {bookings.length === 0 && (
-            <Card padding="xl" radius="md" style={{ background: '#FFFFFF', textAlign: 'center' }}>
+            <Card padding="xl" radius="md" style={{ background: c.bgCardSolid, textAlign: 'center' }}>
               <Stack align="center" gap="sm">
                 <Text style={{ fontSize: 40 }}>📭</Text>
-                <Text fw={600} style={{ color: '#1C1C1E' }}>Нет предстоящих встреч</Text>
-                <Text size="sm" style={{ color: '#8E8E93' }}>Бронирования появятся здесь после того, как гости запишутся.</Text>
+                <Text fw={600} style={{ color: c.textPrimary }}>Нет предстоящих встреч</Text>
+                <Text size="sm" style={{ color: c.textTertiary }}>Бронирования появятся здесь после того, как гости запишутся.</Text>
               </Stack>
             </Card>
           )}
@@ -361,21 +364,21 @@ export function AdminPage() {
               const et = getEventTypeName(booking.eventTypeId)
               return (
                 <motion.div key={booking.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                  <Card padding="lg" radius="md" style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.06)' }}>
+                  <Card padding="lg" radius="md" style={{ background: c.bgCardSolid, border: `1px solid ${c.borderSubtle}` }}>
                     <Group justify="space-between" align="flex-start">
                       <Stack gap={4}>
                         <Group gap="xs" align="center">
-                          <Avatar size={32} radius="xl" color="orange">{booking.guestName.charAt(0).toUpperCase()}</Avatar>
-                          <Text fw={600} size="sm" style={{ color: '#1C1C1E' }}>{booking.guestName}</Text>
+                          <Avatar size={32} radius="xl" color={c.mantineColor}>{booking.guestName.charAt(0).toUpperCase()}</Avatar>
+                          <Text fw={600} size="sm" style={{ color: c.textPrimary }}>{booking.guestName}</Text>
                         </Group>
-                        <Text size="xs" style={{ color: '#8E8E93', paddingLeft: 40 }}>{booking.guestEmail}</Text>
+                        <Text size="xs" style={{ color: c.textTertiary, paddingLeft: 40 }}>{booking.guestEmail}</Text>
                         {booking.notes && (
-                          <Text size="xs" style={{ color: '#6C6C70', paddingLeft: 40, fontStyle: 'italic', maxWidth: 360 }}>«{booking.notes}»</Text>
+                          <Text size="xs" style={{ color: c.textSecondary, paddingLeft: 40, fontStyle: 'italic', maxWidth: 360 }}>«{booking.notes}»</Text>
                         )}
                       </Stack>
                       <Stack gap={6} align="flex-end">
-                        <Text fw={600} size="sm" style={{ color: '#1C1C1E', fontVariantNumeric: 'tabular-nums' }}>{formatDateTime(booking.startTime)}</Text>
-                        <Text size="xs" style={{ color: '#8E8E93', fontVariantNumeric: 'tabular-nums' }}>{formatTime(booking.startTime)} – {formatTime(booking.endTime)}</Text>
+                        <Text fw={600} size="sm" style={{ color: c.textPrimary, fontVariantNumeric: 'tabular-nums' }}>{formatDateTime(booking.startTime)}</Text>
+                        <Text size="xs" style={{ color: c.textTertiary, fontVariantNumeric: 'tabular-nums' }}>{formatTime(booking.startTime)} – {formatTime(booking.endTime)}</Text>
                         {booking.isOngoing && (
                           <Badge
                             size="sm"
@@ -388,7 +391,7 @@ export function AdminPage() {
                             ● Идёт сейчас
                           </Badge>
                         )}
-                        {et && <Badge size="sm" variant="filled" color="orange">{et.name} · {et.durationMinutes} мин</Badge>}
+                        {et && <Badge size="sm" variant="filled" color={c.mantineColor}>{et.name} · {et.durationMinutes} мин</Badge>}
                       </Stack>
                     </Group>
                   </Card>

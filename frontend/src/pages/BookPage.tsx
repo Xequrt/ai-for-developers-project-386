@@ -1,18 +1,12 @@
 import { useEffect, useState } from 'react'
-import {
-  Avatar,
-  Badge,
-  Card,
-  Group,
-  Loader,
-  SimpleGrid,
-  Stack,
-  Text,
-} from '@mantine/core'
-import { motion } from 'motion/react'
+import { Avatar, Badge, Button, Card, Group, Loader, SimpleGrid, Stack, Text } from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
+import { motion, useReducedMotion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { getEventTypes, getOwnerProfile } from '../api/client'
 import type { EventType, Owner } from '../types'
+import { useThemeColors } from '../utils/useThemeColors'
+import { getHoverProps } from '../utils/animationProps'
 
 const pageVariants = {
   initial: { opacity: 0, x: 50 },
@@ -21,37 +15,50 @@ const pageVariants = {
 }
 const pageTransition = { duration: 0.3, ease: 'easeInOut' as const }
 
-const cardHover = {
-  scale: 1.02,
-  boxShadow: '0 4px 12px rgba(0,122,255,0.15)',
-} as const
-
 export function BookPage() {
   const navigate = useNavigate()
   const [eventTypes, setEventTypes] = useState<EventType[]>([])
   const [owner, setOwner] = useState<Owner | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const isMobile = useMediaQuery('(max-width: 767px)')
+  const prefersReducedMotion = useReducedMotion()
+  const cardHover = getHoverProps('event-card')
+  const c = useThemeColors()
 
-  useEffect(() => {
-    Promise.all([getEventTypes(), getOwnerProfile()]).then(([types, ownerData]) => {
-      setEventTypes(types)
-      setOwner(ownerData)
-      setLoading(false)
-    })
-  }, [])
+  const glassCard = {
+    background: c.glassBackground,
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: c.glassBorder,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+  }
+
+  const fetchData = () => {
+    setLoading(true)
+    setError(false)
+    Promise.all([getEventTypes(), getOwnerProfile()])
+      .then(([types, ownerData]) => { setEventTypes(types); setOwner(ownerData); setLoading(false) })
+      .catch(() => { setError(true); setLoading(false) })
+  }
+
+  useEffect(() => { fetchData() }, [])
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: 'calc(100vh - 56px)',
-          background: '#F5F5F7',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Loader color="orange" size="lg" />
+      <div style={{ minHeight: 'calc(100vh - 56px)', background: c.bgPage, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader color={c.mantineColor} size="lg" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div style={{ minHeight: 'calc(100vh - 56px)', background: c.bgPage, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Stack align="center" gap="md">
+          <Text style={{ color: '#FF3B30' }}>Не удалось загрузить типы событий</Text>
+          <Button color={c.mantineColor} onClick={fetchData}>Повторить</Button>
+        </Stack>
       </div>
     )
   }
@@ -63,92 +70,52 @@ export function BookPage() {
       animate="animate"
       exit="exit"
       transition={pageTransition}
-      style={{
-        minHeight: 'calc(100vh - 56px)',
-        background: '#F5F5F7',
-        padding: '40px 24px',
-      }}
+      style={{ minHeight: 'calc(100vh - 56px)', background: c.bgPage, padding: isMobile ? '24px 16px' : '40px 24px' }}
     >
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
         <Stack gap="xl">
-          {/* Owner profile header */}
           {owner && (
-            <Card padding="lg" radius="md" style={{ background: '#FFFFFF' }}>
+            <Card padding="lg" radius="md" style={glassCard}>
               <Group gap="md">
-                <Avatar
-                  size={56}
-                  radius="xl"
-                  color="orange"
-                  style={{ fontWeight: 700, fontSize: 22 }}
-                >
+                <Avatar size={56} radius="xl" color={c.mantineColor} style={{ fontWeight: 700, fontSize: 22 }}>
                   {owner.name.charAt(0).toUpperCase()}
                 </Avatar>
                 <Stack gap={2}>
-                  <Text fw={700} size="lg" style={{ color: '#1C1C1E' }}>
-                    {owner.name}
-                  </Text>
-                  <Text size="sm" style={{ color: '#6C6C70' }}>
-                    Host
-                  </Text>
+                  <Text fw={700} size="lg" style={{ color: c.textPrimary }}>{owner.name}</Text>
+                  <Text size="sm" style={{ color: c.textSecondary }}>Host</Text>
                 </Stack>
               </Group>
             </Card>
           )}
 
-          {/* Title */}
           <Stack gap="xs">
-            <Text
-              fw={700}
-              style={{
-                fontSize: 28,
-                color: '#1C1C1E',
-                letterSpacing: '-0.5px',
-              }}
-            >
+            <Text fw={700} style={{ fontSize: isMobile ? 22 : 28, color: c.textPrimary, letterSpacing: '-0.5px' }}>
               Выберите тип события
             </Text>
-            <Text size="sm" style={{ color: '#6C6C70' }}>
+            <Text size="sm" style={{ color: c.textSecondary }}>
               Нажмите на карточку, чтобы открыть календарь и выбрать удобный слот.
             </Text>
           </Stack>
 
-          {/* Event type cards grid */}
-          <SimpleGrid cols={2} spacing="md">
+          <SimpleGrid cols={isMobile ? 1 : 2} spacing="md">
             {eventTypes.map((et) => (
               <motion.div
                 key={et.id}
-                whileHover={cardHover}
+                whileHover={prefersReducedMotion ? {} : cardHover}
                 style={{ cursor: 'pointer' }}
                 onClick={() => navigate(`/book/${et.id}`)}
               >
-                <Card
-                  padding="lg"
-                  radius="md"
-                  style={{
-                    background: '#FFFFFF',
-                    border: '1px solid rgba(0,0,0,0.06)',
-                    height: '100%',
-                  }}
-                >
+                <Card padding="lg" radius="md" style={{ ...glassCard, height: '100%' }}>
                   <Stack gap="sm">
                     <Group justify="space-between" align="flex-start">
-                      <Text
-                        fw={600}
-                        size="md"
-                        style={{ color: '#1C1C1E', flex: 1, paddingRight: 8 }}
-                      >
+                      <Text fw={600} size="md" style={{ color: c.textPrimary, flex: 1, paddingRight: 8 }}>
                         {et.name}
                       </Text>
-                      <Badge
-                        size="sm"
-                        variant="filled"
-                        color="orange"
-                        style={{ flexShrink: 0 }}
-                      >
+                      <Badge size="sm" variant="filled" color={c.mantineColor} style={{ flexShrink: 0 }}>
                         {et.durationMinutes} мин
                       </Badge>
                     </Group>
-                    <Text size="sm" style={{ color: '#6C6C70', lineHeight: 1.5 }}>
+                    <Text size="sm" style={{ color: c.textSecondary, lineHeight: 1.5 }}>
                       {et.description}
                     </Text>
                   </Stack>
