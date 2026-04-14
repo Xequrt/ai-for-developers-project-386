@@ -30,6 +30,20 @@ class OwnerRow(Base):
     working_hours_json = Column(Text, nullable=False)
 
 
+class UserRow(Base):
+    __tablename__ = "users"
+    id = Column(String, primary_key=True)
+    username = Column(String, unique=True, nullable=False, index=True)
+    email = Column(String, unique=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    timezone = Column(String, nullable=False, default="Europe/Moscow")
+    working_hours_json = Column(Text, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(String, nullable=False)
+    updated_at = Column(String, nullable=False)
+
+
 class EventTypeRow(Base):
     __tablename__ = "event_types"
     id = Column(String, primary_key=True)
@@ -80,14 +94,35 @@ _SEED_WORKING_HOURS = '{"monday":{"enabled":true,"startTime":"09:00","endTime":"
 def init_db():
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as session:
-        if not session.get(OwnerRow, "550e8400-e29b-41d4-a716-446655440001"):
+        owner_id = "550e8400-e29b-41d4-a716-446655440001"
+        
+        # Create default owner if not exists
+        if not session.get(OwnerRow, owner_id):
             session.add(OwnerRow(
-                id="550e8400-e29b-41d4-a716-446655440001",
+                id=owner_id,
                 name="Владелец",
                 email="owner@calendar.app",
                 timezone="Europe/Moscow",
                 working_hours_json=_SEED_WORKING_HOURS,
             ))
+        
+        # Create default user from owner if not exists (for auth migration)
+        if not session.get(UserRow, owner_id):
+            # Default password is 'changeme' - user should change it
+            # Password hash will be set by auth router on first use
+            session.add(UserRow(
+                id=owner_id,
+                username="owner",
+                email="owner@calendar.app",
+                password_hash="",  # Will be set on first login
+                name="Владелец",
+                timezone="Europe/Moscow",
+                working_hours_json=_SEED_WORKING_HOURS,
+                is_active=True,
+                created_at=now_iso(),
+                updated_at=now_iso(),
+            ))
+        
         if not session.get(EventTypeRow, "evt-001"):
             session.add(EventTypeRow(
                 id="evt-001",

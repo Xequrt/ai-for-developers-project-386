@@ -12,18 +12,48 @@ import type {
 
 const BASE_URL = '/api/v1'
 
+// Получение токена из localStorage
+function getAuthToken(): string | null {
+  return localStorage.getItem('auth_token')
+}
+
+// Базовая функция для публичных запросов (без авторизации)
 async function tryFetch<T>(url: string): Promise<T> {
   const res = await fetch(url)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return (await res.json()) as T
 }
 
-export async function getEventTypes(): Promise<EventType[]> {
-  return tryFetch<EventType[]>(`${BASE_URL}/event-types`)
+// Функция для защищенных запросов (с JWT токеном)
+async function tryFetchWithAuth<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const token = getAuthToken()
+  
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...((options.headers as Record<string, string>) || {}),
+  }
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  
+  const res = await fetch(url, {
+    ...options,
+    headers,
+  })
+  
+  // Если 401 — токен невалиден, очищаем и кидаем ошибку
+  if (res.status === 401) {
+    localStorage.removeItem('auth_token')
+    throw new Error('Сессия истекла. Пожалуйста, войдите снова.')
+  }
+  
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return (await res.json()) as T
 }
 
-export async function getOwnerProfile(): Promise<Owner> {
-  return tryFetch<Owner>(`${BASE_URL}/owner/profile`)
+export async function getEventTypes(): Promise<EventType[]> {
+  return tryFetch<EventType[]>(`${BASE_URL}/event-types`)
 }
 
 export async function getAvailableSlots(
@@ -59,42 +89,34 @@ export async function createBooking(request: CreateBookingRequest): Promise<Book
   return res.json() as Promise<Booking>
 }
 
+export async function getOwnerProfile(): Promise<Owner> {
+  return tryFetchWithAuth<Owner>(`${BASE_URL}/owner/profile`)
+}
+
 export async function getUpcomingBookings(limit = 100, offset = 0): Promise<PaginatedBookings> {
-  return tryFetch<PaginatedBookings>(
+  return tryFetchWithAuth<PaginatedBookings>(
     `${BASE_URL}/owner/bookings/upcoming?limit=${limit}&offset=${offset}`,
   )
 }
 
 export async function createEventType(request: CreateEventTypeRequest): Promise<EventType> {
-  const res = await fetch(`${BASE_URL}/owner/event-types`, {
+  const res = await tryFetchWithAuth(`${BASE_URL}/owner/event-types`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
   })
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body?.error?.message ?? `Ошибка ${res.status}`)
-  }
-  return res.json() as Promise<EventType>
+  return res as EventType
 }
 
 export async function updateEventType(id: string, request: UpdateEventTypeRequest): Promise<EventType> {
-  const res = await fetch(`${BASE_URL}/owner/event-types/${id}`, {
+  const res = await tryFetchWithAuth(`${BASE_URL}/owner/event-types/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
   })
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body?.error?.message ?? `Ошибка ${res.status}`)
-  }
-  return res.json() as Promise<EventType>
+  return res as EventType
 }
 
 export async function deleteEventType(id: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/owner/event-types/${id}`, { method: 'DELETE' })
-  if (!res.ok && res.status !== 204) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body?.error?.message ?? `Ошибка ${res.status}`)
-  }
+  await tryFetchWithAuth(`${BASE_URL}/owner/event-types/${id}`, {
+    method: 'DELETE',
+  })
 }

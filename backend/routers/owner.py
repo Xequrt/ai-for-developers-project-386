@@ -11,7 +11,8 @@ from models import (
     UpdateEventTypeRequest, WorkingHours, Owner,
 )
 import database as db
-from database import get_db, EventTypeRow, BookingRow, OwnerRow
+from database import get_db, EventTypeRow, BookingRow, OwnerRow, UserRow
+from auth import get_current_user
 
 router = APIRouter(prefix="/api/v1/owner", tags=["OwnerApi"])
 
@@ -24,6 +25,12 @@ def error_response(status_code: int, code: str, message: str):
 def row_to_owner(row: OwnerRow) -> Owner:
     wh = WorkingHours(**json.loads(row.working_hours_json))
     return Owner(id=row.id, name=row.name, email=row.email, timezone=row.timezone, workingHours=wh)
+
+
+def user_to_owner(user: UserRow) -> Owner:
+    """Конвертирует UserRow в Owner модель (для совместимости)."""
+    wh = WorkingHours(**json.loads(user.working_hours_json))
+    return Owner(id=user.id, name=user.name, email=user.email, timezone=user.timezone, workingHours=wh)
 
 
 def row_to_booking(row: BookingRow) -> Booking:
@@ -42,15 +49,19 @@ def row_to_booking(row: BookingRow) -> Booking:
 
 
 @router.get("/profile")
-def get_profile(session: Session = Depends(get_db)):
-    row = session.query(OwnerRow).first()
-    return row_to_owner(row)
+def get_profile(current_user: UserRow = Depends(get_current_user)):
+    """Получение профиля текущего аутентифицированного пользователя."""
+    return user_to_owner(current_user)
 
 
 # ── Типы событий ──────────────────────────────────────────────────────────────
 
 @router.post("/event-types", status_code=201)
-def create_event_type(body: CreateEventTypeRequest, session: Session = Depends(get_db)):
+def create_event_type(
+    body: CreateEventTypeRequest, 
+    session: Session = Depends(get_db),
+    current_user: UserRow = Depends(get_current_user)
+):
     if not body.id or len(body.id) > 100:
         return error_response(400, "VALIDATION_ERROR", "Некорректный id.")
     if session.get(EventTypeRow, body.id):
@@ -75,7 +86,11 @@ def create_event_type(body: CreateEventTypeRequest, session: Session = Depends(g
 
 
 @router.get("/event-types/{id}")
-def get_event_type(id: str, session: Session = Depends(get_db)):
+def get_event_type(
+    id: str, 
+    session: Session = Depends(get_db),
+    current_user: UserRow = Depends(get_current_user)
+):
     row = session.get(EventTypeRow, id)
     if not row:
         return error_response(404, "EVENT_TYPE_NOT_FOUND", "Тип события не найден.")
@@ -84,7 +99,12 @@ def get_event_type(id: str, session: Session = Depends(get_db)):
 
 
 @router.put("/event-types/{id}")
-def update_event_type(id: str, body: UpdateEventTypeRequest, session: Session = Depends(get_db)):
+def update_event_type(
+    id: str, 
+    body: UpdateEventTypeRequest, 
+    session: Session = Depends(get_db),
+    current_user: UserRow = Depends(get_current_user)
+):
     row = session.get(EventTypeRow, id)
     if not row:
         return error_response(404, "EVENT_TYPE_NOT_FOUND", "Тип события не найден.")
@@ -105,7 +125,11 @@ def update_event_type(id: str, body: UpdateEventTypeRequest, session: Session = 
 
 
 @router.delete("/event-types/{id}", status_code=204)
-def delete_event_type(id: str, session: Session = Depends(get_db)):
+def delete_event_type(
+    id: str, 
+    session: Session = Depends(get_db),
+    current_user: UserRow = Depends(get_current_user)
+):
     row = session.get(EventTypeRow, id)
     if not row:
         return error_response(404, "EVENT_TYPE_NOT_FOUND", "Тип события не найден.")
@@ -120,6 +144,7 @@ def list_upcoming_bookings(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     session: Session = Depends(get_db),
+    current_user: UserRow = Depends(get_current_user)
 ):
     now = datetime.now()
     rows = session.query(BookingRow).filter(BookingRow.status == "confirmed").all()
@@ -140,7 +165,11 @@ def list_upcoming_bookings(
 
 
 @router.get("/bookings/{id}")
-def get_booking(id: str, session: Session = Depends(get_db)):
+def get_booking(
+    id: str, 
+    session: Session = Depends(get_db),
+    current_user: UserRow = Depends(get_current_user)
+):
     row = session.get(BookingRow, id)
     if not row:
         return error_response(404, "BOOKING_NOT_FOUND", "Бронирование не найдено.")
@@ -148,7 +177,11 @@ def get_booking(id: str, session: Session = Depends(get_db)):
 
 
 @router.delete("/bookings/{id}", status_code=204)
-def cancel_booking(id: str, session: Session = Depends(get_db)):
+def cancel_booking(
+    id: str, 
+    session: Session = Depends(get_db),
+    current_user: UserRow = Depends(get_current_user)
+):
     row = session.get(BookingRow, id)
     if not row:
         return error_response(404, "BOOKING_NOT_FOUND", "Бронирование не найдено.")

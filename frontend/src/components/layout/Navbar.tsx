@@ -1,8 +1,9 @@
-import { Group, Text, Anchor, ActionIcon, SegmentedControl } from '@mantine/core'
-import { Link } from 'react-router-dom'
+import { Group, Text, Anchor, ActionIcon, SegmentedControl, Button } from '@mantine/core'
+import { Link, useNavigate } from 'react-router-dom'
 import { useMantineColorScheme } from '@mantine/core'
 import { useDesignSystem } from '../../utils/designSystem'
 import { useThemeColors } from '../../utils/useThemeColors'
+import { useAuth } from '../../contexts/AuthContext'
 
 function CalendarLogo() {
   const { isClassic } = useThemeColors()
@@ -31,6 +32,13 @@ export function Navbar() {
   const { designSystem, setDesignSystem } = useDesignSystem()
   const c = useThemeColors()
   const isDark = colorScheme === 'dark'
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/')
+  }
 
   return (
     <header
@@ -68,9 +76,26 @@ export function Navbar() {
           <Anchor component={Link} to="/book" style={{ color: c.accent, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
             Записаться
           </Anchor>
-          <Anchor component={Link} to="/admin" style={{ color: c.textPrimary, fontWeight: 500, fontSize: 15, textDecoration: 'none' }}>
-            Админка
-          </Anchor>
+          
+          {user ? (
+            <>
+              <Anchor component={Link} to="/admin" style={{ color: c.textPrimary, fontWeight: 500, fontSize: 15, textDecoration: 'none' }}>
+                Админка
+              </Anchor>
+              <Button 
+                variant="subtle" 
+                size="compact-sm"
+                onClick={handleLogout}
+                style={{ color: c.textSecondary }}
+              >
+                Выйти ({user.username})
+              </Button>
+            </>
+          ) : (
+            <Anchor component={Link} to="/login" style={{ color: c.textPrimary, fontWeight: 500, fontSize: 15, textDecoration: 'none' }}>
+              Войти
+            </Anchor>
+          )}
 
           {/* Design system switcher */}
           <SegmentedControl

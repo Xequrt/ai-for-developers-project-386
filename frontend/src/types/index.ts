@@ -333,3 +333,57 @@ export interface BookingPageState {
   /** Отображаемый месяц в формате YYYY-MM (например, "2026-03") */
   currentMonth: string;
 }
+
+// ─────────────────────────────────────────────
+// Аутентификация и пользователи
+// ─────────────────────────────────────────────
+
+/**
+ * Пользователь системы (владелец календаря).
+ */
+export interface User {
+  /** Уникальный идентификатор (UUID v4) */
+  id: UUID;
+  /** Имя пользователя (уникальное, для URL) */
+  username: string;
+  /** Email пользователя */
+  email: string;
+  /** Отображаемое имя */
+  name: string;
+  /** Часовой пояс в формате IANA */
+  timezone: string;
+}
+
+/**
+ * Ответ при успешном входе — JWT токен.
+ */
+export interface AuthToken {
+  /** JWT токен для авторизации */
+  access_token: string;
+  /** Тип токена (всегда "bearer") */
+  token_type: string;
+}
+
+/**
+ * Данные для входа.
+ */
+export interface LoginRequest {
+  /** Имя пользователя или email */
+  username: string;
+  /** Пароль */
+  password: string;
+}
+
+/**
+ * Данные для регистрации.
+ */
+export interface RegisterRequest {
+  /** Имя пользователя (уникальное) */
+  username: string;
+  /** Email */
+  email: string;
+  /** Пароль */
+  password: string;
+  /** Отображаемое имя */
+  name: string;
+}

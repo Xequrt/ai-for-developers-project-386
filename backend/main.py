@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from database import init_db
-from routers import public, owner
+from routers import public, owner, auth
 
 
 @asynccontextmanager
@@ -29,6 +29,7 @@ app.add_middleware(
 
 app.include_router(public.router)
 app.include_router(owner.router)
+app.include_router(auth.router)
 
 # ── Статика фронтенда (продакшен) ─────────────────────────────────────────────
 _static = Path(__file__).parent / "static"
