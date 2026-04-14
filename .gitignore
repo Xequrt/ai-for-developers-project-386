@@ -25,6 +25,8 @@ frontend/node_modules/
 typespec/node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/playwright-report/
+frontend/test-results/
 *.local
 
 # ── Переменные окружения ──────────────────────────────────────────────────────
