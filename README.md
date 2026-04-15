@@ -31,28 +31,40 @@ https://calendar-booking-app-9g9h.onrender.com
 make install
 ```
 
-### Переменные окружения
+### Настройка окружения
 
-| Переменная | Описание | Обязательная |
-|------------|----------|--------------|
-| `JWT_SECRET_KEY` | Секретный ключ для JWT токенов | Да (для запуска) |
+1. Скопируйте шаблон конфигурации:
+```bash
+cp backend/.env.example backend/.env
+```
+
+2. Отредактируйте `backend/.env` и установите секретный ключ:
+```bash
+# Обязательно измените JWT_SECRET_KEY в production!
+JWT_SECRET_KEY=your-secret-key-min-32-chars-long
+```
+
+### Конфигурация через .env файл
+
+| Переменная | Описание | Обязательная | По умолчанию |
+|------------|----------|--------------|--------------|
+| `JWT_SECRET_KEY` | Секретный ключ для JWT токенов | Да | — |
+| `JWT_EXPIRE_DAYS` | Срок действия токена в днях | Нет | 7 |
+| `DATABASE_URL` | URL базы данных | Нет | `sqlite:///./calendar.db` |
+| `CORS_ORIGINS` | Разрешенные CORS origins | Нет | `http://localhost:5173` |
 
 ### Запуск
 
 Бэкенд и фронтенд одновременно:
 
 ```bash
-# С указанием JWT секрета
-JWT_SECRET_KEY=your-secret-key make dev
+make dev
 ```
 
 Или по отдельности:
 
 ```bash
-# Бэкенд
-JWT_SECRET_KEY=your-secret-key make dev-backend    # FastAPI на http://localhost:8000
-
-# Фронтенд
+make dev-backend    # FastAPI на http://localhost:8000
 make dev-frontend   # Vite на http://localhost:5173
 ```
 

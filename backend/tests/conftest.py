@@ -5,9 +5,24 @@
 import sys
 import os
 
+# Устанавливаем тестовый JWT секрет ДО импорта приложения
+# Это безопасно: ключ используется только в unit-тестах, не в production
+os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-unit-tests-only-xyz123"
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
+
+def get_test_auth_headers() -> dict:
+    """Возвращает заголовки авторизации для тестового пользователя.
+    
+    Токен создаётся с использованием JWT_SECRET_KEY из environment,
+    который должен быть установлен перед импортом приложения (см. в начале файла).
+    """
+    from auth import create_access_token
+    # Используем ID дефолтного owner из reset_db()
+    token = create_access_token("550e8400-e29b-41d4-a716-446655440001")
+    return {"Authorization": f"Bearer {token}"}
 
 
 def future_iso(days: int = 1, hour: int = 10, minute: int = 0) -> str:
@@ -29,19 +44,34 @@ def future_date(days: int = 1) -> str:
 
 def reset_db():
     """Пересоздаёт таблицы и заполняет seed-данными."""
-    from database import Base, engine, SessionLocal, OwnerRow, EventTypeRow, BookingRow
-    from database import _SEED_WORKING_HOURS
+    from database import Base, engine, SessionLocal, OwnerRow, UserRow, EventTypeRow, BookingRow
+    from database import _SEED_WORKING_HOURS, now_iso
 
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
     with SessionLocal() as session:
+        # Создаём OwnerRow для публичных endpoints
         session.add(OwnerRow(
             id="550e8400-e29b-41d4-a716-446655440001",
             name="Владелец",
             email="owner@calendar.app",
             timezone="Europe/Moscow",
             working_hours_json=_SEED_WORKING_HOURS,
+        ))
+        # Создаём UserRow для авторизации в тестах
+        # Пароль пустой - для тестов используется JWT токен напрямую
+        session.add(UserRow(
+            id="550e8400-e29b-41d4-a716-446655440001",
+            username="testowner",
+            email="owner@calendar.app",
+            password_hash="",  # Пустой - не используется в тестах
+            name="Владелец",
+            timezone="Europe/Moscow",
+            working_hours_json=_SEED_WORKING_HOURS,
+            is_active=True,
+            created_at=now_iso(),
+            updated_at=now_iso(),
         ))
         session.add(EventTypeRow(
             id="evt-001",

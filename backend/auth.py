@@ -1,7 +1,6 @@
 """
 Аутентификация и авторизация — JWT, хеширование паролей, зависимости FastAPI.
 """
-import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -12,18 +11,10 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from database import get_db, UserRow
+from config import settings
 
 # Security configuration
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_DAYS = 7
-
-
-def _get_secret_key() -> str:
-    """Lazy loading of JWT secret key — allows imports without env var set."""
-    secret = os.environ.get("JWT_SECRET_KEY")
-    if not secret:
-        raise ValueError("JWT_SECRET_KEY environment variable must be set")
-    return secret
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -47,17 +38,17 @@ def create_access_token(user_id: str, expires_delta: Optional[timedelta] = None)
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
+        expire = datetime.now(timezone.utc) + timedelta(days=settings.jwt_expire_days)
     
     to_encode = {"sub": user_id, "exp": expire}
-    encoded_jwt = jwt.encode(to_encode, _get_secret_key(), algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.jwt_secret_key, algorithm=ALGORITHM)
     return encoded_jwt
 
 
 def decode_token(token: str) -> Optional[str]:
     """Декодирование JWT токена, возвращает user_id или None."""
     try:
-        payload = jwt.decode(token, _get_secret_key(), algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         return user_id
     except JWTError:

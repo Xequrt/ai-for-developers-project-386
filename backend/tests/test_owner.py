@@ -9,14 +9,18 @@ from fastapi.testclient import TestClient
 from conftest import reset_db, future_iso
 
 
+from conftest import get_test_auth_headers
+
+
 class TestOwnerProfile(unittest.TestCase):
     def setUp(self):
         reset_db()
         from main import app
         self.client = TestClient(app)
+        self.auth_headers = get_test_auth_headers()
 
     def test_get_profile_returns_owner(self):
-        r = self.client.get("/api/v1/owner/profile")
+        r = self.client.get("/api/v1/owner/profile", headers=self.auth_headers)
         self.assertEqual(r.status_code, 200)
         data = r.json()
         self.assertEqual(data["name"], "Владелец")
@@ -24,7 +28,7 @@ class TestOwnerProfile(unittest.TestCase):
         self.assertIn("timezone", data)
 
     def test_profile_has_working_hours(self):
-        r = self.client.get("/api/v1/owner/profile")
+        r = self.client.get("/api/v1/owner/profile", headers=self.auth_headers)
         wh = r.json()["workingHours"]
         self.assertTrue(wh["monday"]["enabled"])
         self.assertFalse(wh["saturday"]["enabled"])
@@ -36,6 +40,7 @@ class TestOwnerEventTypes(unittest.TestCase):
         reset_db()
         from main import app
         self.client = TestClient(app)
+        self.auth_headers = get_test_auth_headers()
 
     def test_create_event_type_success(self):
         r = self.client.post("/api/v1/owner/event-types", json={
@@ -43,7 +48,7 @@ class TestOwnerEventTypes(unittest.TestCase):
             "name": "Консультация 45 минут",
             "description": "Детальный разбор задачи.",
             "durationMinutes": 45,
-        })
+        }, headers=self.auth_headers)
         self.assertEqual(r.status_code, 201)
         data = r.json()
         self.assertEqual(data["id"], "evt-custom-1")
@@ -53,8 +58,8 @@ class TestOwnerEventTypes(unittest.TestCase):
 
     def test_create_event_type_duplicate_id(self):
         payload = {"id": "evt-dup", "name": "Тест", "description": "", "durationMinutes": 30}
-        self.client.post("/api/v1/owner/event-types", json=payload)
-        r = self.client.post("/api/v1/owner/event-types", json=payload)
+        self.client.post("/api/v1/owner/event-types", json=payload, headers=self.auth_headers)
+        r = self.client.post("/api/v1/owner/event-types", json=payload, headers=self.auth_headers)
         self.assertEqual(r.status_code, 409)
         self.assertEqual(r.json()["error"]["code"], "DUPLICATE_ID")
 
@@ -64,7 +69,7 @@ class TestOwnerEventTypes(unittest.TestCase):
             "name": "Тест",
             "description": "",
             "durationMinutes": 20,
-        })
+        }, headers=self.auth_headers)
         self.assertEqual(r.status_code, 201)
         self.assertEqual(r.json()["durationMinutes"], 20)
 
@@ -74,7 +79,7 @@ class TestOwnerEventTypes(unittest.TestCase):
             "name": "Тест",
             "description": "",
             "durationMinutes": 0,
-        })
+        }, headers=self.auth_headers)
         self.assertEqual(r.status_code, 400)
 
     def test_created_event_type_appears_in_public_list(self):
@@ -83,20 +88,20 @@ class TestOwnerEventTypes(unittest.TestCase):
             "name": "Новый тип",
             "description": "Описание",
             "durationMinutes": 60,
-        })
+        }, headers=self.auth_headers)
         r = self.client.get("/api/v1/event-types")
         names = [et["name"] for et in r.json()]
         self.assertIn("Новый тип", names)
 
     def test_delete_event_type(self):
-        r = self.client.delete("/api/v1/owner/event-types/evt-001")
+        r = self.client.delete("/api/v1/owner/event-types/evt-001", headers=self.auth_headers)
         self.assertEqual(r.status_code, 204)
         r2 = self.client.get("/api/v1/event-types")
         ids = [et["id"] for et in r2.json()]
         self.assertNotIn("evt-001", ids)
 
     def test_delete_nonexistent_event_type(self):
-        r = self.client.delete("/api/v1/owner/event-types/nonexistent")
+        r = self.client.delete("/api/v1/owner/event-types/nonexistent", headers=self.auth_headers)
         self.assertEqual(r.status_code, 404)
 
 
@@ -105,6 +110,7 @@ class TestOwnerUpcomingBookings(unittest.TestCase):
         reset_db()
         from main import app
         self.client = TestClient(app)
+        self.auth_headers = get_test_auth_headers()
 
     def _book(self, event_type_id: str, days_ahead: int = 3, hour: int = 10):
         return self.client.post("/api/v1/bookings", json={
@@ -115,7 +121,7 @@ class TestOwnerUpcomingBookings(unittest.TestCase):
         })
 
     def test_upcoming_bookings_empty_initially(self):
-        r = self.client.get("/api/v1/owner/bookings/upcoming")
+        r = self.client.get("/api/v1/owner/bookings/upcoming", headers=self.auth_headers)
         self.assertEqual(r.status_code, 200)
         data = r.json()
         self.assertEqual(data["items"], [])
@@ -124,7 +130,7 @@ class TestOwnerUpcomingBookings(unittest.TestCase):
     def test_upcoming_bookings_shows_all_event_types(self):
         self._book("evt-001", days_ahead=3, hour=10)
         self._book("evt-002", days_ahead=4, hour=11)
-        r = self.client.get("/api/v1/owner/bookings/upcoming")
+        r = self.client.get("/api/v1/owner/bookings/upcoming", headers=self.auth_headers)
         data = r.json()
         self.assertEqual(data["total"], 2)
         event_type_ids = {b["eventTypeId"] for b in data["items"]}
@@ -134,7 +140,7 @@ class TestOwnerUpcomingBookings(unittest.TestCase):
     def test_upcoming_bookings_sorted_by_start_time(self):
         self._book("evt-001", days_ahead=5, hour=14)
         self._book("evt-002", days_ahead=3, hour=10)
-        r = self.client.get("/api/v1/owner/bookings/upcoming")
+        r = self.client.get("/api/v1/owner/bookings/upcoming", headers=self.auth_headers)
         items = r.json()["items"]
         times = [b["startTime"] for b in items]
         self.assertEqual(times, sorted(times))
@@ -142,7 +148,7 @@ class TestOwnerUpcomingBookings(unittest.TestCase):
     def test_upcoming_bookings_pagination(self):
         for hour in [9, 10, 11]:
             self._book("evt-001", days_ahead=3, hour=hour)
-        r = self.client.get("/api/v1/owner/bookings/upcoming?limit=2&offset=0")
+        r = self.client.get("/api/v1/owner/bookings/upcoming?limit=2&offset=0", headers=self.auth_headers)
         data = r.json()
         self.assertEqual(len(data["items"]), 2)
         self.assertEqual(data["total"], 3)
@@ -165,7 +171,7 @@ class TestOwnerUpcomingBookings(unittest.TestCase):
                 status="confirmed", created_at=db.now_iso(),
             ))
             session.commit()
-        r = self.client.get("/api/v1/owner/bookings/upcoming")
+        r = self.client.get("/api/v1/owner/bookings/upcoming", headers=self.auth_headers)
         items = r.json()["items"]
         ongoing = [b for b in items if b["id"] == "ongoing-1"]
         self.assertEqual(len(ongoing), 1)
@@ -174,26 +180,27 @@ class TestOwnerUpcomingBookings(unittest.TestCase):
     def test_future_booking_has_is_ongoing_false(self):
         """Будущая встреча имеет isOngoing=False."""
         self._book("evt-001", days_ahead=3, hour=10)
-        r = self.client.get("/api/v1/owner/bookings/upcoming")
+        r = self.client.get("/api/v1/owner/bookings/upcoming", headers=self.auth_headers)
         items = r.json()["items"]
         self.assertTrue(all(not b["isOngoing"] for b in items))
 
 
 class TestCrossEventTypeConflict(unittest.TestCase):
-    """Правило занятости: нельзя забронировать пересекающееся время
+    """Правило занятости: нельзя забронировать пересекащееся время
     даже если это разные типы событий."""
 
     def setUp(self):
         reset_db()
         from main import app
         self.client = TestClient(app)
+        self.auth_headers = get_test_auth_headers()
         # Создаём второй тип события с тем же временем слота
         self.client.post("/api/v1/owner/event-types", json={
             "id": "evt-new-type",
             "name": "Новый тип 30 мин",
             "description": "Тест пересечения",
             "durationMinutes": 30,
-        })
+        }, headers=self.auth_headers)
 
     def test_booking_new_event_type_conflicts_with_existing(self):
         """Бронируем evt-001 на 10:00, затем evt-new-type на то же время — должен вернуть 409."""

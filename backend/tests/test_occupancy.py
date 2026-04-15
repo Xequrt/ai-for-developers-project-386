@@ -7,7 +7,7 @@
 """
 import unittest
 from fastapi.testclient import TestClient
-from conftest import reset_db, future_iso, future_date
+from conftest import reset_db, future_iso, future_date, get_test_auth_headers
 
 
 class TestOccupancyRule(unittest.TestCase):
@@ -15,6 +15,7 @@ class TestOccupancyRule(unittest.TestCase):
         reset_db()
         from main import app
         self.client = TestClient(app)
+        self.auth_headers = get_test_auth_headers()
 
     def _book(self, event_type_id: str, days: int = 3, hour: int = 10, minute: int = 0) -> dict:
         r = self.client.post("/api/v1/bookings", json={
@@ -66,7 +67,7 @@ class TestOccupancyRule(unittest.TestCase):
         booking_id = r1.json()["id"]
 
         # Отменяем
-        r_cancel = self.client.delete(f"/api/v1/owner/bookings/{booking_id}")
+        r_cancel = self.client.delete(f"/api/v1/owner/bookings/{booking_id}", headers=self.auth_headers)
         self.assertEqual(r_cancel.status_code, 204)
 
         # Теперь можно забронировать то же время
@@ -76,9 +77,9 @@ class TestOccupancyRule(unittest.TestCase):
     def test_cancelled_booking_not_in_upcoming(self):
         r1 = self._book("evt-001", hour=10)
         booking_id = r1.json()["id"]
-        self.client.delete(f"/api/v1/owner/bookings/{booking_id}")
+        self.client.delete(f"/api/v1/owner/bookings/{booking_id}", headers=self.auth_headers)
 
-        r = self.client.get("/api/v1/owner/bookings/upcoming")
+        r = self.client.get("/api/v1/owner/bookings/upcoming", headers=self.auth_headers)
         ids = [b["id"] for b in r.json()["items"]]
         self.assertNotIn(booking_id, ids)
 

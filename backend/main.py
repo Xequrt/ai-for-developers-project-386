@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from database import init_db
 from routers import public, owner, auth
+from config import settings
 
 
 @asynccontextmanager
@@ -20,9 +21,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Parse CORS origins from comma-separated string
+cors_origins = [origin.strip() for origin in settings.cors_origins.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

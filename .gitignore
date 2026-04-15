@@ -35,6 +35,7 @@ frontend/test-results/
 .env.*.local
 .env.production
 .env.development
+backend/.env
 
 # ── Редакторы и IDE ───────────────────────────────────────────────────────────
 .vscode/settings.json
