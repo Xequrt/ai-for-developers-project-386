@@ -42,7 +42,7 @@ export function BookingPage() {
 
   useEffect(() => {
     if (!eventTypeId) return
-    Promise.all([getEventTypes(), getOwnerProfile()]).then(([types, ownerData]) => {
+    Promise.all([getEventTypes(), getOwnerProfile().catch(() => null)]).then(([types, ownerData]) => {
       setEventType(types.find((t) => t.id === eventTypeId) ?? null)
       setOwner(ownerData)
       setLoading(false)

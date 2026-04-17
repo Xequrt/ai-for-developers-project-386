@@ -37,7 +37,10 @@ export function BookPage() {
   const fetchData = () => {
     setLoading(true)
     setError(false)
-    Promise.all([getEventTypes(), getOwnerProfile()])
+    Promise.all([
+      getEventTypes(),
+      getOwnerProfile().catch(() => null),
+    ])
       .then(([types, ownerData]) => { setEventTypes(types); setOwner(ownerData); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })
   }
