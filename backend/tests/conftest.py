@@ -42,6 +42,11 @@ def future_date(days: int = 1) -> str:
     return target.isoformat()
 
 
+def _get_test_password_hash() -> str:
+    import bcrypt as _bcrypt
+    return _bcrypt.hashpw(b"changeme", _bcrypt.gensalt()).decode()
+
+
 def reset_db():
     """Пересоздаёт таблицы и заполняет seed-данными."""
     from database import Base, engine, SessionLocal, OwnerRow, UserRow, EventTypeRow, BookingRow
@@ -65,7 +70,7 @@ def reset_db():
             id="550e8400-e29b-41d4-a716-446655440001",
             username="testowner",
             email="owner@calendar.app",
-            password_hash="",  # Пустой - не используется в тестах
+            password_hash=_get_test_password_hash(),
             name="Владелец",
             timezone="Europe/Moscow",
             working_hours_json=_SEED_WORKING_HOURS,
