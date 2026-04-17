@@ -32,9 +32,9 @@ test.describe('Сценарий гостя — полное бронирован
     // Ждём загрузки календаря
     await expect(page.getByText('Календарь')).toBeVisible()
 
-    // Выбираем первую доступную дату (не задизейбленную)
-    const availableDay = page.locator('button[aria-pressed="false"]:not([disabled])').first()
-    await availableDay.waitFor({ state: 'visible' })
+    // Ждём появления доступных дней (aria-label содержит "свободных слотов")
+    const availableDay = page.locator('button[aria-label*="свободных слотов"]').first()
+    await availableDay.waitFor({ state: 'visible', timeout: 15000 })
     await availableDay.click()
 
     // Ждём появления слотов
@@ -64,15 +64,22 @@ test.describe('Сценарий гостя — полное бронирован
 })
 
 test.describe('Сценарий владельца — админка', () => {
+  test.beforeEach(async ({ page }) => {
+    // Логинимся перед каждым тестом владельца
+    await page.goto('/login')
+    await page.getByLabel('Имя пользователя или email').fill('owner')
+    await page.getByLabel('Пароль').fill('changeme')
+    await page.getByRole('button', { name: 'Войти' }).click()
+    await page.waitForURL('/admin')
+  })
+
   test('страница /admin показывает профиль владельца', async ({ page }) => {
-    await page.goto('/admin')
     await page.waitForLoadState('networkidle')
     await expect(page.getByText('Типы событий')).toBeVisible({ timeout: 10000 })
     await expect(page.getByText('Предстоящие встречи')).toBeVisible()
   })
 
   test('владелец может создать новый тип события', async ({ page }) => {
-    await page.goto('/admin')
     await page.getByRole('button', { name: '+ Новый тип' }).click()
     await page.getByRole('textbox', { name: 'ID' }).fill('evt-test-e2e')
     await page.getByRole('textbox', { name: 'Название' }).fill('Тестовая встреча')
