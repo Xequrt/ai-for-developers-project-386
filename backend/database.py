@@ -86,6 +86,12 @@ def get_db():
         db.close()
 
 
+def _get_default_password_hash() -> str:
+    """Возвращает bcrypt-хеш пароля 'changeme' для seed-данных."""
+    import bcrypt as _bcrypt
+    return _bcrypt.hashpw(b"changeme", _bcrypt.gensalt()).decode()
+
+
 # ── Инициализация БД ──────────────────────────────────────────────────────────
 
 _SEED_WORKING_HOURS = '{"monday":{"enabled":true,"startTime":"09:00","endTime":"18:00"},"tuesday":{"enabled":true,"startTime":"09:00","endTime":"18:00"},"wednesday":{"enabled":true,"startTime":"09:00","endTime":"18:00"},"thursday":{"enabled":true,"startTime":"09:00","endTime":"18:00"},"friday":{"enabled":true,"startTime":"09:00","endTime":"18:00"},"saturday":{"enabled":false,"startTime":"09:00","endTime":"18:00"},"sunday":{"enabled":false,"startTime":"09:00","endTime":"18:00"}}'
@@ -108,13 +114,11 @@ def init_db():
         
         # Create default user from owner if not exists (for auth migration)
         if not session.get(UserRow, owner_id):
-            # Default password is 'changeme' - user should change it
-            # Password hash will be set by auth router on first use
             session.add(UserRow(
                 id=owner_id,
                 username="owner",
                 email="owner@calendar.app",
-                password_hash="",  # Will be set on first login
+                password_hash=_get_default_password_hash(),
                 name="Владелец",
                 timezone="Europe/Moscow",
                 working_hours_json=_SEED_WORKING_HOURS,

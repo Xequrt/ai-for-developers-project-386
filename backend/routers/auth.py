@@ -109,13 +109,7 @@ def login(request: LoginRequest, session: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Специальная обработка для дефолтного пользователя (первый вход)
-    # Если password_hash пустой — установить пароль из запроса
-    if not user.password_hash:
-        user.password_hash = hash_password(request.password)
-        user.updated_at = db.now_iso()
-        session.commit()
-    elif not verify_password(request.password, user.password_hash):
+    if not verify_password(request.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Неверные учетные данные",
@@ -138,18 +132,22 @@ def get_me(current_user: UserRow = Depends(get_current_user)):
     return user_to_profile(current_user)
 
 
+class UpdateProfileRequest(BaseModel):
+    name: str | None = None
+    timezone: str | None = None
+
+
 @router.put("/me", response_model=UserProfile)
 def update_me(
-    name: str | None = None,
-    timezone: str | None = None,
+    body: UpdateProfileRequest,
     current_user: UserRow = Depends(get_current_user),
     session: Session = Depends(get_db)
 ):
     """Обновление профиля текущего пользователя."""
-    if name is not None:
-        current_user.name = name
-    if timezone is not None:
-        current_user.timezone = timezone
+    if body.name is not None:
+        current_user.name = body.name
+    if body.timezone is not None:
+        current_user.timezone = body.timezone
     
     current_user.updated_at = db.now_iso()
     session.commit()
