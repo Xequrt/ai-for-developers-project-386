@@ -8,18 +8,18 @@ https://calendar-booking-app-9g9h.onrender.com
 
 # Calendar — сервис записи на встречи
 
-Веб-приложение для быстрой записи на встречи. Гость выбирает тип события, находит свободный слот в календаре и подтверждает бронирование. Владелец управляет типами событий и видит предстоящие встречи.
+Веб-приложение для быстрой записи на встречи. Гость выбирает тип события, находит свободный слот в календаре и подтверждает бронирование. Владелец управляет типами событий и видит предстоящие встречи через защищённую панель администратора.
 
 ## Стек
 
 | Слой | Технологии |
 |------|-----------|
-| Бэкенд | Python 3.12, FastAPI, Pydantic v2, JWT |
-| Фронтенд | React 18, TypeScript, Vite, Mantine UI, Motion |
+| Бэкенд | Python 3.12, FastAPI, Pydantic v2 |
+| Фронтенд | React 18, TypeScript, Vite, Mantine UI 7, Motion |
 | API-контракт | TypeSpec → OpenAPI 3.0 |
 | Хранилище | SQLite (SQLAlchemy 2.0) |
-| Аутентификация | JWT + BCrypt |
-| Юнит-тесты | Python unittest (45 тестов) |
+| Аутентификация | JWT (python-jose) + bcrypt |
+| Юнит-тесты | pytest (60 тестов) |
 | E2E-тесты | Playwright (Chromium) |
 | CI | GitHub Actions |
 
@@ -39,8 +39,7 @@ cp backend/.env.example backend/.env
 ```
 
 2. Отредактируйте `backend/.env` и установите секретный ключ:
-```bash
-# Обязательно измените JWT_SECRET_KEY в production!
+```env
 JWT_SECRET_KEY=your-secret-key-min-32-chars-long
 ```
 
@@ -49,9 +48,9 @@ JWT_SECRET_KEY=your-secret-key-min-32-chars-long
 | Переменная | Описание | Обязательная | По умолчанию |
 |------------|----------|--------------|--------------|
 | `JWT_SECRET_KEY` | Секретный ключ для JWT токенов | Да | — |
-| `JWT_EXPIRE_DAYS` | Срок действия токена в днях | Нет | 7 |
+| `JWT_EXPIRE_DAYS` | Срок действия токена в днях | Нет | `7` |
 | `DATABASE_URL` | URL базы данных | Нет | `sqlite:///./calendar.db` |
-| `CORS_ORIGINS` | Разрешенные CORS origins | Нет | `http://localhost:5173` |
+| `CORS_ORIGINS` | Разрешённые CORS origins (через запятую) | Нет | `http://localhost:5173` |
 
 ### Запуск
 
@@ -71,7 +70,7 @@ make dev-frontend   # Vite на http://localhost:5173
 ### Тесты
 
 ```bash
-make test             # юнит-тесты бэкенда (45 тестов)
+make test             # все тесты бэкенда (60 тестов)
 make test-verbose     # с подробным выводом
 make test-owner       # тесты владельца
 make test-guest       # тесты гостя
@@ -102,7 +101,7 @@ make typespec-compile
 | `/login` | Вход | Авторизация пользователя |
 | `/register` | Регистрация | Создание нового аккаунта |
 
-### Защищенные маршруты (требуют авторизации)
+### Защищённые маршруты (требуют авторизации)
 | Путь | Страница | Описание |
 |------|----------|----------|
 | `/admin` | Панель владельца | Управление типами событий и бронированиями |
@@ -116,12 +115,13 @@ make typespec-compile
 | Endpoint | Метод | Описание |
 |----------|-------|----------|
 | `/api/v1/event-types` | GET | Список типов событий |
-| `/api/v1/available-slots` | GET | Доступные слоты |
+| `/api/v1/available-slots` | GET | Доступные слоты на дату |
+| `/api/v1/available-slots/summary` | GET | Сводка слотов по месяцу |
 | `/api/v1/bookings` | POST | Создание бронирования |
-| `/api/v1/auth/register` | POST | Регистрация |
+| `/api/v1/auth/register` | POST | Регистрация нового пользователя |
 | `/api/v1/auth/login` | POST | Вход (возвращает JWT) |
 
-### Защищенные эндпоинты (требуют JWT)
+### Защищённые эндпоинты (требуют JWT)
 
 Все запросы должны содержать заголовок:
 ```
@@ -131,16 +131,19 @@ Authorization: Bearer <jwt_token>
 | Endpoint | Метод | Описание |
 |----------|-------|----------|
 | `/api/v1/auth/me` | GET | Профиль текущего пользователя |
+| `/api/v1/auth/me` | PUT | Обновление профиля (JSON-тело) |
 | `/api/v1/owner/profile` | GET | Профиль владельца |
-| `/api/v1/owner/event-types` | POST/PUT/DELETE | CRUD типов событий |
-| `/api/v1/owner/bookings/*` | GET/DELETE | Управление бронированиями |
+| `/api/v1/owner/event-types` | POST | Создание типа события |
+| `/api/v1/owner/event-types/:id` | GET / PUT / DELETE | CRUD типа события |
+| `/api/v1/owner/bookings/upcoming` | GET | Предстоящие бронирования |
+| `/api/v1/owner/bookings/:id` | GET / DELETE | Просмотр и отмена бронирования |
 
-### Первый вход
+### Дефолтный пользователь
 
-Для миграции существующего владельца:
+При первом запуске создаётся пользователь-владелец:
 - Username: `owner`
 - Email: `owner@calendar.app`
-- Пароль: любой (будет установлен при первом входе)
+- Пароль: `changeme`
 
 ## CI
 
