@@ -47,7 +47,8 @@ JWT_SECRET_KEY=your-secret-key-min-32-chars-long
 
 | Переменная | Описание | Обязательная | По умолчанию |
 |------------|----------|--------------|--------------|
-| `JWT_SECRET_KEY` | Секретный ключ для JWT токенов | Да | — |
+| `APP_ENV` | Окружение: `development` или `production` | Нет | `development` |
+| `JWT_SECRET_KEY` | Секретный ключ для JWT токенов | Только в `production` | — |
 | `JWT_EXPIRE_DAYS` | Срок действия токена в днях | Нет | `7` |
 | `DATABASE_URL` | URL базы данных | Нет | `sqlite:///./calendar.db` |
 | `CORS_ORIGINS` | Разрешённые CORS origins (через запятую) | Нет | `http://localhost:5173` |
@@ -119,14 +120,11 @@ make typespec-compile
 | `/api/v1/available-slots/summary` | GET | Сводка слотов по месяцу |
 | `/api/v1/bookings` | POST | Создание бронирования |
 | `/api/v1/auth/register` | POST | Регистрация нового пользователя |
-| `/api/v1/auth/login` | POST | Вход (возвращает JWT) |
+| `/api/v1/auth/login` | POST | Вход (устанавливает httpOnly cookie) |
 
-### Защищённые эндпоинты (требуют JWT)
+### Защищённые эндпоинты (требуют авторизации)
 
-Все запросы должны содержать заголовок:
-```
-Authorization: Bearer <jwt_token>
-```
+Аутентификация через httpOnly cookie `auth_token` (устанавливается при логине) или заголовок `Authorization: Bearer <token>`.
 
 | Endpoint | Метод | Описание |
 |----------|-------|----------|
@@ -143,7 +141,7 @@ Authorization: Bearer <jwt_token>
 При первом запуске создаётся пользователь-владелец:
 - Username: `owner`
 - Email: `owner@calendar.app`
-- Пароль: `changeme`
+- Пароль: `Changeme1`
 
 ## CI
 
