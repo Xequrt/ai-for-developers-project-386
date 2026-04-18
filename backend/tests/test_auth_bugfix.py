@@ -23,19 +23,6 @@ sys.path.insert(0, os.path.abspath(_TESTS_DIR))
 from fastapi.testclient import TestClient
 from conftest import reset_db, get_test_auth_headers
 
-# Принудительная инициализация bcrypt backend при импорте модуля.
-# Passlib при первом вызове hash_password запускает detect_wrap_bug с паролем 256 байт,
-# что падает с новой версией bcrypt. Вызов с коротким паролем инициализирует backend корректно.
-def _init_bcrypt_backend():
-    try:
-        from auth import hash_password
-        hash_password("_init_")
-    except Exception:
-        pass
-
-_init_bcrypt_backend()
-
-
 class TestBugCondition1_EmptyPasswordHash(unittest.TestCase):
     """
     Дефект 1: init_db() / reset_db() создаёт UserRow с password_hash == "".
@@ -46,7 +33,7 @@ class TestBugCondition1_EmptyPasswordHash(unittest.TestCase):
 
     Expected Behavior (после фикса):
         user.password_hash != ""
-        AND verify_password("changeme", user.password_hash) == True
+        AND verify_password("Changeme1", user.password_hash) == True
 
     Validates: Requirements 1.1
     """
@@ -76,7 +63,7 @@ class TestBugCondition1_EmptyPasswordHash(unittest.TestCase):
 
     def test_bug1_owner_password_hash_verifies_changeme(self):
         """
-        EXPLORATORY: password_hash должен верифицироваться через verify_password("changeme", hash).
+        EXPLORATORY: password_hash должен верифицироваться через verify_password("Changeme1", hash).
         ОЖИДАЕТСЯ ПАДЕНИЕ: при пустом хеше verify_password вернёт False.
         """
         from database import SessionLocal, UserRow
@@ -86,11 +73,11 @@ class TestBugCondition1_EmptyPasswordHash(unittest.TestCase):
         with SessionLocal() as session:
             user = session.get(UserRow, owner_id)
 
-        # Это упадёт: verify_password("changeme", "") == False
+        # Это упадёт: verify_password("Changeme1", "") == False
         self.assertTrue(
-            verify_password("changeme", user.password_hash),
-            f"ДЕФЕКТ 1: verify_password('changeme', '{user.password_hash}') вернул False. "
-            "Хеш должен быть bcrypt-хешем пароля 'changeme'."
+            verify_password("Changeme1", user.password_hash),
+            f"ДЕФЕКТ 1: verify_password('Changeme1', '{user.password_hash}') вернул False. "
+            "Хеш должен быть bcrypt-хешем пароля 'Changeme1'."
         )
 
 
@@ -261,49 +248,20 @@ class TestPreservation_CorrectLogin(unittest.TestCase):
 
     def setUp(self):
         reset_db()
-        import bcrypt as _bcrypt
-        import auth as _auth
-        from database import SessionLocal, UserRow
         from main import app
-
-        # Устанавливаем корректный bcrypt-хеш напрямую через bcrypt (минуя passlib)
-        self._hashed = _bcrypt.hashpw(b"changeme", _bcrypt.gensalt()).decode()
-        with SessionLocal() as session:
-            user = session.get(UserRow, "550e8400-e29b-41d4-a716-446655440001")
-            user.password_hash = self._hashed
-            session.commit()
-
-        # Monkey-patch verify_password и hash_password в роутере, т.к. passlib
-        # несовместима с текущей версией bcrypt в этом окружении (detect_wrap_bug).
-        # Это не меняет логику — используется та же bcrypt-функция.
-        import routers.auth as _auth_router
-        self._orig_verify = _auth_router.verify_password
-        self._orig_hash = _auth_router.hash_password
-
-        def _bcrypt_verify(plain: str, hashed: str) -> bool:
-            return _bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
-
-        def _bcrypt_hash(plain: str) -> str:
-            return _bcrypt.hashpw(plain.encode("utf-8"), _bcrypt.gensalt()).decode()
-
-        _auth_router.verify_password = _bcrypt_verify
-        _auth_router.hash_password = _bcrypt_hash
-
         self.client = TestClient(app)
 
     def tearDown(self):
-        import routers.auth as _auth_router
-        _auth_router.verify_password = self._orig_verify
-        _auth_router.hash_password = self._orig_hash
+        pass
 
     def test_preservation_login_with_correct_password_returns_200_preservation(self):
         """
-        PRESERVATION: POST /login с правильным паролем и bcrypt-хешем → 200 OK + access_token.
+        PRESERVATION: POST /login с правильным паролем и bcrypt-хешем → 200 OK + профиль + cookie.
         Validates: Requirements 3.1
         """
         response = self.client.post("/api/v1/auth/login", json={
             "username": "testowner",
-            "password": "changeme",
+            "password": "Changeme1",
         })
         self.assertEqual(
             response.status_code,
@@ -311,12 +269,18 @@ class TestPreservation_CorrectLogin(unittest.TestCase):
             f"PRESERVATION FAIL: POST /login с правильным паролем вернул {response.status_code}: {response.text}"
         )
         data = response.json()
+        # /login теперь возвращает UserProfile, токен — в httpOnly cookie
+        for field in ("id", "username", "email", "name", "timezone"):
+            self.assertIn(
+                field,
+                data,
+                f"PRESERVATION FAIL: Поле '{field}' отсутствует в ответе: {data}"
+            )
         self.assertIn(
-            "access_token",
-            data,
-            f"PRESERVATION FAIL: Ответ не содержит access_token: {data}"
+            "auth_token",
+            response.cookies,
+            "PRESERVATION FAIL: httpOnly cookie 'auth_token' не установлена"
         )
-        self.assertEqual(data.get("token_type"), "bearer")
 
     def test_preservation_login_wrong_password_returns_401_preservation(self):
         """

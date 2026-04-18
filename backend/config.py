@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     jwt_secret_key: str
     jwt_expire_days: int = 7
     
+    # Cookie security
+    cookie_secure: bool = False  # True в prod (HTTPS), False в dev (HTTP)
+    
     # Database
     database_url: str = "sqlite:///./calendar.db"
     
