@@ -44,13 +44,13 @@ def create_access_token(user_id: str, expires_delta: Optional[timedelta] = None)
         expire = datetime.now(timezone.utc) + timedelta(days=settings.jwt_expire_days)
 
     to_encode = {"sub": user_id, "exp": expire}
-    return jwt.encode(to_encode, settings.jwt_secret_key, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, settings.effective_jwt_secret, algorithm=ALGORITHM)
 
 
 def decode_token(token: str) -> Optional[str]:
     """Декодирование JWT токена, возвращает user_id или None."""
     try:
-        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.effective_jwt_secret, algorithms=[ALGORITHM])
         return payload.get("sub")
     except JWTError:
         return None
