@@ -43,8 +43,13 @@ export function RegisterPage() {
       return
     }
 
-    if (formData.password.length < 6) {
-      setError('Пароль должен быть не менее 6 символов')
+    if (formData.password.length < 8) {
+      setError('Пароль должен быть не менее 8 символов')
+      return
+    }
+
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      setError('Пароль должен содержать строчную букву, заглавную букву и цифру')
       return
     }
 
@@ -123,7 +128,8 @@ export function RegisterPage() {
 
             <PasswordInput
               label="Пароль"
-              placeholder="Минимум 6 символов"
+              placeholder="Минимум 8 символов"
+              description="Минимум 8 символов, строчная и заглавная буква, цифра"
               value={formData.password}
               onChange={(e) => handleChange('password', e.target.value)}
               required

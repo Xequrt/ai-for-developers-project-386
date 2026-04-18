@@ -44,7 +44,7 @@ def future_date(days: int = 1) -> str:
 
 def _get_test_password_hash() -> str:
     import bcrypt as _bcrypt
-    return _bcrypt.hashpw(b"changeme", _bcrypt.gensalt()).decode()
+    return _bcrypt.hashpw(b"Changeme1", _bcrypt.gensalt()).decode()
 
 
 def reset_db():

@@ -87,9 +87,9 @@ def get_db():
 
 
 def _get_default_password_hash() -> str:
-    """Возвращает bcrypt-хеш пароля 'changeme' для seed-данных."""
+    """Возвращает bcrypt-хеш пароля 'Changeme1' для seed-данных."""
     import bcrypt as _bcrypt
-    return _bcrypt.hashpw(b"changeme", _bcrypt.gensalt()).decode()
+    return _bcrypt.hashpw(b"Changeme1", _bcrypt.gensalt()).decode()
 
 
 # ── Инициализация БД ──────────────────────────────────────────────────────────
