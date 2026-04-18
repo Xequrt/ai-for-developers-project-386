@@ -12,11 +12,6 @@ import type {
 
 const BASE_URL = '/api/v1'
 
-// Получение токена из localStorage
-function getAuthToken(): string | null {
-  return localStorage.getItem('auth_token')
-}
-
 // Базовая функция для публичных запросов (без авторизации)
 async function tryFetch<T>(url: string): Promise<T> {
   const res = await fetch(url)
@@ -24,30 +19,23 @@ async function tryFetch<T>(url: string): Promise<T> {
   return (await res.json()) as T
 }
 
-// Функция для защищенных запросов (с JWT токеном)
+// Функция для защищенных запросов — токен передаётся через httpOnly cookie
 async function tryFetchWithAuth<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const token = getAuthToken()
-  
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((options.headers as Record<string, string>) || {}),
   }
-  
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-  
+
   const res = await fetch(url, {
     ...options,
     headers,
+    credentials: 'include', // отправляем httpOnly cookie автоматически
   })
-  
-  // Если 401 — токен невалиден, очищаем и кидаем ошибку
+
   if (res.status === 401) {
-    localStorage.removeItem('auth_token')
     throw new Error('Сессия истекла. Пожалуйста, войдите снова.')
   }
-  
+
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return (await res.json()) as T
 }

@@ -1,23 +1,17 @@
 /**
- * Контекст аутентификации — управление состоянием пользователя и JWT токеном.
+ * Контекст аутентификации — управление состоянием пользователя.
+ * Токен хранится в httpOnly cookie (устанавливается сервером),
+ * фронтенд работает только с данными пользователя.
  */
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
-import type { User, AuthToken, LoginRequest, RegisterRequest } from '../types'
+import type { User, LoginRequest, RegisterRequest } from '../types'
 
 interface AuthContextType {
-  /** Текущий пользователь или null если не авторизован */
   user: User | null
-  /** JWT токен или null */
-  token: string | null
-  /** Флаг загрузки (проверка токена при старте) */
   isLoading: boolean
-  /** Вход в систему */
   login: (data: LoginRequest) => Promise<void>
-  /** Регистрация */
   register: (data: RegisterRequest) => Promise<void>
-  /** Выход из системы */
-  logout: () => void
-  /** Обновление профиля пользователя */
+  logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
 
@@ -27,43 +21,25 @@ const API_BASE = '/api/v1/auth'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Проверка сохраненного токена при загрузке
+  // При загрузке проверяем сессию через /me (cookie отправляется автоматически)
   useEffect(() => {
-    const storedToken = localStorage.getItem('auth_token')
-    if (storedToken) {
-      setToken(storedToken)
-      // Валидируем токен и получаем пользователя
-      fetchUser(storedToken)
-    } else {
-      setIsLoading(false)
-    }
+    fetchUser().finally(() => setIsLoading(false))
   }, [])
 
-  async function fetchUser(authToken: string) {
+  async function fetchUser(): Promise<void> {
     try {
       const response = await fetch(`${API_BASE}/me`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-        },
+        credentials: 'include', // отправляем httpOnly cookie
       })
-      
       if (response.ok) {
-        const userData: User = await response.json()
-        setUser(userData)
+        setUser(await response.json())
       } else {
-        // Токен невалиден — очищаем
-        localStorage.removeItem('auth_token')
-        setToken(null)
+        setUser(null)
       }
-    } catch (error) {
-      console.error('Failed to fetch user:', error)
-      localStorage.removeItem('auth_token')
-      setToken(null)
-    } finally {
-      setIsLoading(false)
+    } catch {
+      setUser(null)
     }
   }
 
@@ -71,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await fetch(`${API_BASE}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // получаем cookie от сервера
       body: JSON.stringify(data),
     })
 
@@ -79,12 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(error.detail || 'Ошибка входа')
     }
 
-    const authData: AuthToken = await response.json()
-    setToken(authData.access_token)
-    localStorage.setItem('auth_token', authData.access_token)
-    
-    // Получаем данные пользователя
-    await fetchUser(authData.access_token)
+    const userData: User = await response.json()
+    setUser(userData)
   }
 
   async function register(data: RegisterRequest): Promise<void> {
@@ -103,30 +76,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await login({ username: data.username, password: data.password })
   }
 
-  function logout() {
+  async function logout(): Promise<void> {
+    await fetch(`${API_BASE}/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    })
     setUser(null)
-    setToken(null)
-    localStorage.removeItem('auth_token')
   }
 
-  async function refreshUser() {
-    if (token) {
-      await fetchUser(token)
-    }
-  }
-
-  const value: AuthContextType = {
-    user,
-    token,
-    isLoading,
-    login,
-    register,
-    logout,
-    refreshUser,
+  async function refreshUser(): Promise<void> {
+    await fetchUser()
   }
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )
