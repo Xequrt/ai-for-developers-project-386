@@ -68,7 +68,7 @@ test.describe('Сценарий владельца — админка', () => {
     // Логинимся перед каждым тестом владельца
     await page.goto('/login')
     await page.getByLabel('Имя пользователя или email').fill('owner')
-    await page.getByLabel('Пароль').fill('changeme')
+    await page.getByLabel('Пароль').fill('Changeme1')
     await page.getByRole('button', { name: 'Войти' }).click()
     await page.waitForURL('/admin')
   })
