@@ -50,7 +50,7 @@ Thumbs.db
 
 # ── Тесты и покрытие ──────────────────────────────────────────────────────────
 .coverage
-.coverage.json
+coverage.json
 .pytest_cache/
 htmlcov/
 .tox/
