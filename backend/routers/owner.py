@@ -133,6 +133,15 @@ def delete_event_type(
     row = session.get(EventTypeRow, id)
     if not row:
         return error_response(404, "EVENT_TYPE_NOT_FOUND", "Тип события не найден.")
+
+    existing_bookings = session.query(BookingRow).filter(
+        BookingRow.event_type_id == id,
+        BookingRow.status == "confirmed"
+    ).count()
+    if existing_bookings > 0:
+        return error_response(409, "EVENT_TYPE_HAS_BOOKINGS", 
+            "Невозможно удалить тип события с активными бронированиями.")
+
     session.delete(row)
     session.commit()
 
