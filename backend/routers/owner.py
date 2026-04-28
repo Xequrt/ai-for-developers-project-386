@@ -139,7 +139,7 @@ def delete_event_type(
         BookingRow.status == "confirmed"
     ).count()
     if active_bookings > 0:
-        return error_response(409, "HAS_ACTIVE_BOOKINGS", 
+        return error_response(409, "EVENT_TYPE_HAS_BOOKINGS", 
             f"Нельзя удалить тип события: имеется {active_bookings} активных бронирований.")
     
     session.delete(row)
