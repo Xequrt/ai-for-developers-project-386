@@ -1,9 +1,17 @@
-name: Weekly Test Coverage Audit
+name: Manual OpenCode Task
 
 on:
-  schedule:
-    - cron: "0 9 * * 1"  # Every Monday at 9am UTC
   workflow_dispatch:
+    inputs:
+      prompt:
+        description: "Task for OpenCode"
+        required: true
+        type: string
+      model:
+        description: "Model to use"
+        required: false
+        default: "opencode/minimax-m2.5-free"
+        type: string
 
 jobs:
   opencode:
@@ -23,9 +31,5 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/minimax-m2.5-free
-          prompt: |
-            Analyze the codebase and test files. Find modules and functions
-            that lack test coverage. Prioritize by: number of dependents,
-            frequency of recent changes, complexity.
-            Create an issue with a prioritized list of what needs tests.
+          model: ${{ inputs.model }}
+          prompt: ${{ inputs.prompt }}
